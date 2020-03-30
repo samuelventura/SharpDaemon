@@ -1,0 +1,2 @@
+# SharpDaemon
+Windows Daemon Manager
