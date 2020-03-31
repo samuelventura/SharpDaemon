@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Reflection;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace SharpDaemon
 {
@@ -75,6 +76,51 @@ namespace SharpDaemon
         public static void Assert(bool condition, string format, params object[] args)
         {
             if (!condition) throw Make(format, args);
+        }
+
+        public static string[] Tokens(string line, Output output, char quote = '`')
+        {
+            var list = new List<string>();
+            var sb = new StringBuilder();
+
+            var e = line.GetEnumerator();
+            while (e.MoveNext())
+            {
+                if (char.IsWhiteSpace(e.Current)) continue;
+                else if (e.Current == quote)
+                {
+                    sb.Clear();
+                    sb.Append(e.Current);
+                    while (e.MoveNext())
+                    {
+                        sb.Append(e.Current);
+                        if (e.Current == quote) break;
+                    }
+                    var part = sb.ToString();
+                    if (part.Length >= 2 && part[0] == quote && part[part.Length - 1] == quote)
+                    {
+                        list.Add(part.Substring(1, part.Length - 2));
+                    }
+                    else
+                    {
+                        output.Output("Error : unclosed quote {0}", quote);
+                        return null;
+                    }
+                }
+                else
+                {
+                    sb.Clear();
+                    sb.Append(e.Current);
+                    while (e.MoveNext())
+                    {
+                        if (char.IsWhiteSpace(e.Current)) break;
+                        sb.Append(e.Current);
+                    }
+                    list.Add(sb.ToString());
+                }
+            }
+
+            return list.ToArray();
         }
     }
 }

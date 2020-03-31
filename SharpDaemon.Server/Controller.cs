@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace SharpDaemon.Server
 {
-    public class Controller : IDisposable
+    public class Controller : IDisposable, IScriptable
     {
         private readonly int delay;
         private readonly Runner runner;
@@ -29,24 +29,6 @@ namespace SharpDaemon.Server
             runner = new Runner(new Runner.Args { ExceptionHandler = handler });
         }
 
-        public void Start(DaemonDto dto, Callback callback = null)
-        {
-            runner.Run(() =>
-            {
-                Tools.Assert(daemons.ContainsKey(dto.Id), "Daemon {0} already started", dto.Id);
-                DoStart(dto);
-            }, callback);
-        }
-
-        public void Stop(string id, Callback callback = null)
-        {
-            runner.Run(() =>
-            {
-                Tools.Assert(!daemons.ContainsKey(id), "Unknown daemon {0} to stop", id);
-                DoStop(id);
-            }, callback);
-        }
-
         public void Dispose()
         {
             runner.Dispose(() =>
@@ -58,6 +40,36 @@ namespace SharpDaemon.Server
                 }
                 daemons.Clear();
             });
+        }
+
+        public void Execute(string[] tokens, Output output)
+        {
+            if (tokens[0] == "daemon")
+            {
+                if (tokens.Length == 5 && tokens[1] == "install")
+                {
+                    runner.Run(() =>
+                    {
+                        var dto = new DaemonDto
+                        {
+                            Id = tokens[2],
+                            Path = tokens[3],
+                            Args = tokens[4],
+                        };
+                        Tools.Assert(daemons.ContainsKey(dto.Id), "Daemon {0} already installed", dto.Id);
+                        DoStart(dto);
+                    }, (ex) => output.Output(ex.ToString()));
+                }
+                if (tokens.Length == 3 && tokens[1] == "uninstall")
+                {
+                    runner.Run(() =>
+                    {
+                        var id = tokens[2];
+                        Tools.Assert(!daemons.ContainsKey(id), "Unknown daemon {0} to uninstall", id);
+                        DoStop(id);
+                    }, (ex) => output.Output(ex.ToString()));
+                }
+            }
         }
 
         private void Restart(DaemonDto dto)

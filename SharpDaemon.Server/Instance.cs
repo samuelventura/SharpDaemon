@@ -40,9 +40,12 @@ namespace SharpDaemon.Server
                 {
                     ExceptionHandler = OnException,
                     DatabasePath = args.DbPath,
+                    Downloads = args.Downloads,
                     Controller = controller,
                 });
                 disposer.Push(manager);
+                //load from database
+                manager.Start(outputs);
                 listener = new Listener(new Listener.Args
                 {
                     ExceptionHandler = OnException,
@@ -54,6 +57,7 @@ namespace SharpDaemon.Server
                 port = listener.Port;
                 factory.Add(listener);
                 factory.Add(manager);
+                //fill factory before start
                 listener.Start();
                 disposer.Clear();
             }

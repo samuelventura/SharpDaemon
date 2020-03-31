@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace SharpDaemon.Server
 {
-    public class Listener : IDisposable, ShellCommand
+    public class Listener : IDisposable, IScriptable
     {
         private readonly ShellFactory factory;
         private readonly HashSet<ClientRt> clients;
@@ -113,19 +113,23 @@ namespace SharpDaemon.Server
             });
         }
 
-        public void OnLine(string line, Output output)
+        public void Execute(string[] tokens, Output output)
         {
-            if (line.Trim() == "lsc")
+            if (tokens[0] == "client")
             {
-                register.Run(() =>
+                if (tokens.Length == 2 && tokens[1] == "list")
                 {
-                    foreach (var rt in clients)
+                    register.Run(() =>
                     {
-                        var start = rt.Start.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                        output.Output("{0} {1}", rt.EndPoint, start);
-                    }
-                    output.Output("{0} client(s)", clients.Count);
-                });
+                        output.Output("Endpoint|Start");
+                        foreach (var rt in clients)
+                        {
+                            var start = rt.Start.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                            output.Output("{0}|{1}", rt.EndPoint, start);
+                        }
+                        output.Output("{0} client(s)", clients.Count);
+                    });
+                }
             }
         }
     }
@@ -162,7 +166,8 @@ namespace SharpDaemon.Server
             while (line != null)
             {
                 Output.Output("{0} < {1}", EndPoint, line);
-                Shell.OnLine(line, Writer);
+                var tokens = Tools.Tokens(line, Writer);
+                if (tokens != null) Shell.OnLine(tokens, Writer);
                 line = Reader.ReadLine();
             }
         }

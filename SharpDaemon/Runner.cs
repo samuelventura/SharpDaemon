@@ -4,12 +4,6 @@ using System.Threading;
 
 namespace SharpDaemon
 {
-    public class Callback
-    {
-        public Action Done;
-        public Action<Exception> Handler;
-    }
-
     public class Runner : IDisposable
     {
         public class Args
@@ -64,26 +58,13 @@ namespace SharpDaemon
             }
         }
 
-        public void Run(Action action, Action<Exception> handler, Action done = null)
+        public void Run(Action action, Action<Exception> handler)
         {
             lock (queue)
             {
-                queue.Enqueue(() =>
-                {
-                    Tools.Try(() =>
-                    {
-                        action();
-                        done?.Invoke();
-                    }, handler ?? this.handler);
-                });
+                queue.Enqueue(() => Tools.Try(action, handler));
                 Monitor.Pulse(queue);
             }
-        }
-
-        public void Run(Action action, Callback callback)
-        {
-            if (callback == null) Run(action);
-            else Run(action, callback.Handler, callback.Done);
         }
 
         private void Loop()
