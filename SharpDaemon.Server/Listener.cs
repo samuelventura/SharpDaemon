@@ -112,7 +112,7 @@ namespace SharpDaemon.Server
             });
         }
 
-        public void Execute(string[] tokens, Output output)
+        public void Execute(Output output, params string[] tokens)
         {
             if (tokens[0] == "client")
             {
@@ -166,7 +166,7 @@ namespace SharpDaemon.Server
             {
                 Output.Output("Client {0} < {1}", EndPoint, line);
                 var tokens = Tools.Tokens(line, Writer);
-                if (tokens != null && tokens.Length > 0) Shell.Execute(tokens, Writer);
+                if (tokens != null && tokens.Length > 0) Shell.Execute(Writer, tokens);
                 line = Reader.ReadLine();
             }
         }

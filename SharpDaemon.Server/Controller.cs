@@ -41,7 +41,7 @@ namespace SharpDaemon.Server
             });
         }
 
-        public void Execute(string[] tokens, Output output)
+        public void Execute(Output output, params string[] tokens)
         {
             if (tokens[0] == "daemon")
             {

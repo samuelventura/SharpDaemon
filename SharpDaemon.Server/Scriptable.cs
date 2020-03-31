@@ -7,12 +7,12 @@ namespace SharpDaemon.Server
 {
     public interface IScriptable
     {
-        void Execute(string[] tokens, Output output);
+        void Execute(Output output, params string[] tokens);
     }
 
     public class SystemScriptable : IScriptable
     {
-        public void Execute(string[] tokens, Output output)
+        public void Execute(Output output, params string[] tokens)
         {
             if (tokens[0] == "system")
             {
@@ -69,13 +69,13 @@ namespace SharpDaemon.Server
             this.scriptables = scriptables;
         }
 
-        public void Execute(string[] tokens, Output output)
+        public void Execute(Output output, params string[] tokens)
         {
             var list = new List<string>(tokens);
             foreach (var script in scriptables)
             {
                 Tools.Try(
-                    () => script.Execute(list.ToArray(), output),
+                    () => script.Execute(output, list.ToArray()),
                     (ex) => output.Output(ex.ToString())
                 );
             }

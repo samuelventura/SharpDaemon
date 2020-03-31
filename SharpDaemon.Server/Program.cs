@@ -24,7 +24,7 @@ namespace SharpDaemon.Server
                 while (line != null)
                 {
                     var tokens = Tools.Tokens(line, stdout);
-                    if (tokens != null && tokens.Length > 0) shell.Execute(tokens, stdout);
+                    if (tokens != null && tokens.Length > 0) shell.Execute(stdout, tokens);
                     line = Console.ReadLine();
                 }
                 named.Output("Stdin closed");

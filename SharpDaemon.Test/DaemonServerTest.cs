@@ -24,12 +24,8 @@ namespace SharpDaemon.Test
             using (var instance = Launcher.Launch(outputs, cargs))
             {
                 var shell = instance.CreateShell();
-                var cmd = c("daemon", "install", "sample",
-                    Tools.Relative("SharpDaemon.Test.Daemon.exe"));
-                shell.Execute(cmd, outputs);
+                shell.Execute(outputs, "daemon", "install", "sample", Tools.Relative("SharpDaemon.Test.Daemon.exe"));
             }
         }
-
-        string[] c(params string[] tokens) => tokens;
     }
 }

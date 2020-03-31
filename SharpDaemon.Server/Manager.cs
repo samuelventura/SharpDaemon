@@ -50,19 +50,13 @@ namespace SharpDaemon.Server
                 {
                     var created = dto.Created.ToString("yyyy-MM-dd HH:mm:ss.fff");
                     named.Output("Loading daemon {0}|{1}|{2}|{3}", dto.Id, created, dto.Path, dto.Args);
-                    var list = new List<string>();
-                    list.Add("daemon");
-                    list.Add("install");
-                    list.Add(dto.Id);
-                    list.Add(dto.Path);
-                    list.Add(dto.Args);
-                    controller.Execute(list.ToArray(), output);
+                    controller.Execute(output, "daemon", "install", dto.Id, dto.Path, dto.Args);
                 }
                 named.Output("{0} daemon(s) loaded", dtos.Count);
             }, named.OnException);
         }
 
-        public void Execute(string[] tokens, Output output)
+        public void Execute(Output output, params string[] tokens)
         {
             if (tokens[0] == "daemon")
             {
@@ -92,7 +86,7 @@ namespace SharpDaemon.Server
                         };
                         named.Output("Installing... {0}|{1}|{2}|{3}", dto.Id, Tools.Format(dto.Created), dto.Path, dto.Args);
                         Database.Save(dbpath, dto);
-                        controller.Execute(tokens, output);
+                        controller.Execute(output, tokens);
                     }, named.OnException);
                 }
                 if (tokens.Length == 3 && tokens[1] == "uninstall")
@@ -102,7 +96,7 @@ namespace SharpDaemon.Server
                         var id = tokens[2];
                         named.Output("Uninstalling... {0}", id);
                         Database.Remove(dbpath, id);
-                        controller.Execute(tokens, output);
+                        controller.Execute(output, tokens);
                     }, named.OnException);
                 }
             }
