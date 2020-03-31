@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace SharpDaemon.Server
 {
-    public class Listener : IDisposable, IScriptable
+    public class Listener : Disposable, IScriptable
     {
         private readonly ShellFactory factory;
         private readonly HashSet<ClientRt> clients;
@@ -56,12 +56,12 @@ namespace SharpDaemon.Server
 
         public IPEndPoint EndPoint { get { return endpoint; } }
 
-        public void Dispose()
+        protected override void Dispose(bool disposed)
         {
-            Tools.Try(server.Stop, handler);
-            Tools.Try(accepter.Dispose, handler);
-            Tools.Try(register.Dispose, handler);
-            foreach (var rt in clients) Tools.Try(rt.Dispose, handler);
+            Tools.Try(server.Stop);
+            Tools.Try(accepter.Dispose);
+            Tools.Try(register.Dispose);
+            foreach (var rt in clients) Tools.Try(rt.Dispose);
             clients.Clear();
         }
 
@@ -133,7 +133,7 @@ namespace SharpDaemon.Server
         }
     }
 
-    public class ClientRt : IDisposable
+    public class ClientRt : Disposable
     {
         public Output Output;
         public Action<ClientRt> Remove;
@@ -146,10 +146,10 @@ namespace SharpDaemon.Server
         public Runner Runner;
         public Shell Shell;
 
-        public void Dispose()
+        protected override void Dispose(bool disposed)
         {
-            Tools.Try(TcpClient.Close, Handler);
-            Tools.Try(Runner.Dispose, Handler);
+            Tools.Try(TcpClient.Close);
+            Tools.Try(Runner.Dispose);
         }
 
         public void Loop()

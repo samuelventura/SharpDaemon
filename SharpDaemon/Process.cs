@@ -15,7 +15,7 @@ namespace SharpDaemon
         public string Trace { get { return trace; } }
     }
 
-    public class DaemonProcess : IDisposable
+    public class DaemonProcess : Disposable
     {
         private readonly Action<Exception> handler;
         private readonly Process process;
@@ -54,16 +54,16 @@ namespace SharpDaemon
         public string Name { get { return name; } }
         public DateTime Start { get { return start; } }
 
-        public void Dispose()
+        protected override void Dispose(bool disposed)
         {
             Tools.Try(() =>
             {
                 process.StandardInput.WriteLine();
                 process.StandardInput.Flush();
                 process.WaitForExit(200);
-            }, handler);
-            Tools.Try(process.Kill, handler);
-            Tools.Try(process.Dispose, handler);
+            });
+            Tools.Try(process.Kill);
+            Tools.Try(process.Dispose);
         }
 
         public string ReadLine()

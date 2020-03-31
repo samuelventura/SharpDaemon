@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 
 namespace SharpDaemon
 {
-    public class Runner : IDisposable
+    public class Runner : Disposable
     {
         public class Args
         {
@@ -19,7 +18,7 @@ namespace SharpDaemon
         private readonly Thread thread;
         private readonly Action idle;
         private readonly int delay;
-        private volatile bool disposed;
+        private volatile bool quit;
 
         public Runner(Args args = null)
         {
@@ -39,13 +38,13 @@ namespace SharpDaemon
 
         public void Dispose(Action action)
         {
-            Run(() => { disposed = true; action(); });
-            thread.Join();
+            Run(() => { quit = true; action(); });
+            Dispose(); //notify base and counts
         }
 
-        public void Dispose()
+        protected override void Dispose(bool disposed)
         {
-            Run(() => { disposed = true; });
+            Run(() => { quit = true; });
             thread.Join();
         }
 
@@ -61,7 +60,7 @@ namespace SharpDaemon
 
         private void Loop()
         {
-            while (!disposed)
+            while (!quit)
             {
                 var action = queue.Pop(delay, idle);
 

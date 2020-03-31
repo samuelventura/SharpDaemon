@@ -3,7 +3,7 @@ using System.Net;
 
 namespace SharpDaemon.Server
 {
-    public class Instance : IDisposable
+    public class Instance : Disposable
     {
         private readonly ShellFactory factory;
         private readonly IPEndPoint endpoint;
@@ -74,10 +74,10 @@ namespace SharpDaemon.Server
 
         public Shell CreateShell() { return factory.Create(); }
 
-        public void Dispose()
+        protected override void Dispose(bool disposed)
         {
-            Tools.Try(listener.Dispose, OnException);
-            Tools.Try(manager.Dispose, OnException);
+            Tools.Try(listener.Dispose);
+            Tools.Try(manager.Dispose);
         }
 
         //called from many threads

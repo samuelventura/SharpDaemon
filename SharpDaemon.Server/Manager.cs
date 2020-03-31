@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace SharpDaemon.Server
 {
-    public class Manager : IDisposable, IScriptable
+    public class Manager : Disposable, IScriptable
     {
         private readonly string dbpath;
         private readonly Runner runner;
@@ -33,10 +32,10 @@ namespace SharpDaemon.Server
             }
         }
 
-        public void Dispose()
+        protected override void Dispose(bool disposed)
         {
-            Tools.Try(runner.Dispose, handler);
-            Tools.Try(controller.Dispose, handler);
+            Tools.Try(runner.Dispose);
+            Tools.Try(controller.Dispose);
         }
 
         public void Start(Output output)

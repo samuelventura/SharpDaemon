@@ -18,6 +18,14 @@ namespace SharpDaemon.Server
             {
                 var named = new NamedOutput("SYSTEM", output);
 
+                if (tokens.Length == 2 && tokens[1] == "counts")
+                {
+                    GC.Collect();
+                    foreach (var pair in Counter.State())
+                    {
+                        named.Output("Count for {0} = {1}", pair.Key, pair.Value);
+                    }
+                }
                 if (tokens.Length == 2 && tokens[1] == "environment")
                 {
                     named.Output("OSVersion {0}", Environment.OSVersion);

@@ -36,6 +36,7 @@ namespace SharpDaemon.Test
                 testo.WaitFor(400, "DAEMON Debug sample SharpDaemon.Test.Daemon \\d+ Arg hello");
                 testo.WaitFor(400, "DAEMON Info sample SharpDaemon.Test.Daemon \\d+ hello");
                 testo.WaitFor(400, "CONTROLLER Daemon sample restarting in \\d+ms");
+                testo.WaitFor(1400, "CONTROLLER Daemon sample restarting after \\d+ms");
                 Thread.Sleep(2000);
             }
         }

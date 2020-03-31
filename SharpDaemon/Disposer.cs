@@ -3,6 +3,28 @@ using System.Collections.Generic;
 
 namespace SharpDaemon
 {
+    public abstract class Disposable : IDisposable
+    {
+        private readonly object locker = new object();
+        private volatile bool disposed;
+
+        public bool Disposed { get { return disposed; } }
+
+        public Disposable() { Counter.Plus(this); }
+
+        public void Dispose()
+        {
+            lock (locker)
+            {
+                Tools.Try(() => Dispose(disposed));
+                if (!disposed) Counter.Minus(this);
+                disposed = true;
+            }
+        }
+
+        protected abstract void Dispose(bool disposed);
+    }
+
     public class Disposer : IDisposable
     {
         private Stack<Action> actions;
