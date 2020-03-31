@@ -2,7 +2,7 @@
 
 namespace SharpDaemon.Server
 {
-    public class Manager : IDisposable
+    public class Manager : IDisposable, ShellCommand
     {
         private readonly string dbpath;
         private readonly Runner runner;
@@ -60,6 +60,23 @@ namespace SharpDaemon.Server
         {
             Tools.Try(runner.Dispose, handler);
             Tools.Try(controller.Dispose, handler);
+        }
+
+        public void OnLine(string line, Output output)
+        {
+            if (line.Trim() == "lsd")
+            {
+                runner.Run(() =>
+                {
+                    var dtos = Database.List(dbpath);
+                    foreach (var dto in dtos)
+                    {
+                        var created = dto.Created.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                        output.Output("{0} {1} {2} {3}", dto.Id, created, dto.Path, dto.Args);
+                    }
+                    output.Output("{0} daemon(s)", dtos.Count);
+                });
+            }
         }
     }
 }

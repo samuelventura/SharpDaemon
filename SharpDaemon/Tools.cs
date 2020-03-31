@@ -3,38 +3,9 @@ using System.IO;
 using System.Text;
 using System.Reflection;
 using System.Diagnostics;
-using System.Collections.Generic;
 
 namespace SharpDaemon
 {
-    public static class Stdio
-    {
-        private static readonly object locker = new object();
-
-        public static void WriteLine(string format, params object[] args)
-        {
-            lock (locker)
-            {
-                Console.WriteLine(format, args);
-                Console.Out.Flush();
-            }
-        }
-
-        public static string ReadLine() => Console.ReadLine();
-    }
-
-    public class ProcessException : Exception
-    {
-        private readonly string trace;
-
-        public ProcessException(string message, string trace) : base(message)
-        {
-            this.trace = trace;
-        }
-
-        public string Trace { get { return trace; } }
-    }
-
     public static class Tools
     {
         public static void ExceptionHandler(object sender, UnhandledExceptionEventArgs args)
@@ -104,38 +75,6 @@ namespace SharpDaemon
         public static void Assert(bool condition, string format, params object[] args)
         {
             if (!condition) throw Make(format, args);
-        }
-    }
-
-    public class Disposer : IDisposable
-    {
-        private Stack<Action> actions;
-        private Action<Exception> handler;
-
-        public Disposer(Action<Exception> handler = null)
-        {
-            this.handler = handler;
-            this.actions = new Stack<Action>();
-        }
-
-        public void Push(IDisposable disposable)
-        {
-            actions.Push(disposable.Dispose);
-        }
-
-        public void Push(Action action)
-        {
-            actions.Push(action);
-        }
-
-        public void Dispose()
-        {
-            while (actions.Count > 0) Tools.Try(actions.Pop(), handler);
-        }
-
-        public void Clear()
-        {
-            actions.Clear();
         }
     }
 }

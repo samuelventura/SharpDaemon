@@ -9,48 +9,69 @@ namespace SharpDaemon.Server
         {
             AppDomain.CurrentDomain.UnhandledException += Tools.ExceptionHandler;
 
-            var workspace = Tools.Relative("Workspace");
+            var stdout = new StdOutput();
+            var outputs = new Outputs();
+            outputs.Add(stdout);
+
+            var workspace = null as string;
 
             foreach (var arg in args)
             {
+                stdout.Output(arg);
                 if (arg.StartsWith("ws="))
                 {
-                    workspace = ParsePath(arg);
+                    workspace = arg.Split(new char[] { '=' }, 2)[1].Replace("[20]", " ");
                 }
             }
 
-            var dbpath = Path.Combine(workspace, "daemons.db");
-            var logpath = Path.Combine(workspace, "daemons.txt");
-            var portpath = Path.Combine(workspace, "port.txt");
-            var downloads = Path.Combine(workspace, "Downloads");
-            Directory.CreateDirectory(downloads);
-
-            using (var instance = new Instance(new Instance.Args
+            using (var instance = Launch(outputs, workspace))
             {
-                Stdout = true,
-                DbPath = dbpath,
-                LogPath = logpath,
-                RestartDelay = 2000,
-                Downloads = downloads,
-            }))
-            {
-                instance.Log("Listening at {0}", instance.Port);
-                File.WriteAllText(portpath, instance.Port.ToString());
-                instance.Log("ReadLine loop...");
+                stdout.Output("ReadLine loop...");
+                var shell = instance.CreateShell();
                 var line = Console.ReadLine();
                 while (line != null)
                 {
+                    shell.OnLine(line, stdout);
                     line = Console.ReadLine();
                 }
-                instance.Log("Stdin closed");
+                stdout.Output("Stdin closed");
             }
 
             Environment.Exit(0);
         }
 
-        static string ParsePath(string arg)
+        public static Instance Launch(Outputs outputs, string workspace = null)
         {
-            return arg.Split(new char[] { '=' }, 2)[1].Replace("[20]", " ");
+
+            workspace = workspace ?? Tools.Relative("Workspace");
+
+            var dbpath = Path.Combine(workspace, "daemons.db");
+            var logpath = Path.Combine(workspace, "daemons.txt");
+            var portpath = Path.Combine(workspace, "port.txt");
+            var downloads = Path.Combine(workspace, "Downloads");
+
+            Directory.CreateDirectory(downloads);
+
+            using (var disposer = new Disposer())
+            {
+                //acts like mutex for the workspace
+                var writer = new StreamWriter(logpath, true);
+                disposer.Push(writer);
+                var fileout = new WriterOutput(writer);
+                outputs.Add(fileout);
+                var instance = new Instance(new Instance.Args
+                {
+                    DbPath = dbpath,
+                    RestartDelay = 2000,
+                    Downloads = downloads,
+                    Outputs = outputs,
+                });
+                disposer.Push(instance);
+                outputs.Output("Listening at {0}", instance.Port);
+                File.WriteAllText(portpath, instance.Port.ToString());
+                disposer.Clear();
+                return instance;
+            }
         }
     }
 }

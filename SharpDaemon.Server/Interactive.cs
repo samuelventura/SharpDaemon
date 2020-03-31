@@ -1,62 +1,48 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace SharpDaemon.Server
 {
-    public class InteractiveFactory : ShellFactory
+    public interface ShellCommand
     {
-        private readonly Manager manager;
-        private readonly Action<Exception> handler;
+        void OnLine(string line, Output output);
+    }
 
-        public class Args
+    public class Shell
+    {
+        private readonly List<ShellCommand> commands;
+
+        public Shell(List<ShellCommand> commands)
         {
-            public Manager Manager { get; set; }
-            public Action<Exception> ExceptionHandler { get; set; }
+            this.commands = commands;
         }
 
-        public InteractiveFactory(Args args)
+        public void OnLine(string line, Output output)
         {
-            manager = args.Manager;
-            handler = args.ExceptionHandler;
+            foreach (var cmd in commands)
+            {
+                Tools.Try(() => cmd.OnLine(line, output), (ex) => output.Output(ex.ToString()));
+            }
+        }
+    }
+
+    public class ShellFactory
+    {
+        private readonly List<ShellCommand> commands;
+
+        public ShellFactory()
+        {
+            commands = new List<ShellCommand>();
+        }
+
+        public void Add(ShellCommand shell)
+        {
+            commands.Add(shell);
         }
 
         public Shell Create()
         {
-            return new Interactive(new Interactive.Args
-            {
-                Manager = manager,
-                ExceptionHandler = handler,
-            });
-        }
-
-        public void Dispose()
-        {
+            return new Shell(new List<ShellCommand>(commands));
         }
     }
-
-    public class Interactive : Shell
-    {
-        private readonly Manager manager;
-        private readonly Action<Exception> handler;
-
-        public class Args
-        {
-            public Manager Manager { get; set; }
-            public Action<Exception> ExceptionHandler { get; set; }
-        }
-
-        public Interactive(Args args)
-        {
-            manager = args.Manager;
-            handler = args.ExceptionHandler;
-        }
-
-        public void Dispose()
-        {
-        }
-
-        public void OnLine(string line, Action<string> output)
-        {
-        }
-    }
-
 }

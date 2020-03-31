@@ -3,6 +3,18 @@ using System.Diagnostics;
 
 namespace SharpDaemon
 {
+    public class ProcessException : Exception
+    {
+        private readonly string trace;
+
+        public ProcessException(string message, string trace) : base(message)
+        {
+            this.trace = trace;
+        }
+
+        public string Trace { get { return trace; } }
+    }
+
     public class DaemonProcess : IDisposable
     {
         private readonly Action<Exception> handler;

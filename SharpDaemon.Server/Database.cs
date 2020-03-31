@@ -37,6 +37,7 @@ namespace SharpDaemon.Server
     public class DaemonDto
     {
         public string Id { get; set; } = System.Guid.NewGuid().ToString();
+        public DateTime Created { get; set; } = DateTime.Now;
         public string Path { get; set; }
         public string Args { get; set; }
 
@@ -47,6 +48,7 @@ namespace SharpDaemon.Server
                 Id = this.Id,
                 Path = this.Path,
                 Args = this.Args,
+                Created = this.Created,
             };
         }
     }
