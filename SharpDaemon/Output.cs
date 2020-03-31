@@ -28,17 +28,6 @@ namespace SharpDaemon
                 Tools.Try(() => output.Output("{0} {1}", dtt, text));
             }
         }
-
-        public void Output(DateTime dt, string format, params object[] args)
-        {
-            var dtt = Tools.Format(dt);
-            var text = Tools.Format(format, args);
-
-            foreach (var output in outputs)
-            {
-                Tools.Try(() => output.Output("{0} {1}", dtt, text));
-            }
-        }
     }
 
     public class NamedOutput : Output

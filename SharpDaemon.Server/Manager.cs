@@ -82,6 +82,7 @@ namespace SharpDaemon.Server
                         {
                             Id = tokens[2],
                             Path = tokens[3],
+                            Created = DateTime.Now,
                             Args = tokens.Length > 4 ? tokens[4] : string.Empty,
                         };
                         named.Output("Installing... {0}|{1}|{2}|{3}", dto.Id, Tools.Format(dto.Created), dto.Path, dto.Args);

@@ -15,7 +15,7 @@ namespace SharpDaemon
         }
 
         private readonly Action<Exception> handler;
-        private readonly Queue<Action> queue;
+        private readonly LockedQueue<Action> queue;
         private readonly Thread thread;
         private readonly Action idle;
         private readonly int delay;
@@ -29,7 +29,7 @@ namespace SharpDaemon
             this.delay = Math.Max(0, args.IdleDelay);
             if (this.idle == null) this.delay = -1;
 
-            queue = new Queue<Action>();
+            queue = new LockedQueue<Action>();
 
             thread = new Thread(Loop);
             thread.IsBackground = true;
@@ -51,39 +51,19 @@ namespace SharpDaemon
 
         public void Run(Action action)
         {
-            lock (queue)
-            {
-                queue.Enqueue(action);
-                Monitor.Pulse(queue);
-            }
+            queue.Push(action);
         }
 
         public void Run(Action action, Action<Exception> handler)
         {
-            lock (queue)
-            {
-                queue.Enqueue(() => Tools.Try(action, handler));
-                Monitor.Pulse(queue);
-            }
+            queue.Push(() => Tools.Try(action, handler));
         }
 
         private void Loop()
         {
             while (!disposed)
             {
-                var action = idle;
-
-                lock (queue)
-                {
-                    if (queue.Count == 0)
-                    {
-                        Monitor.Wait(queue, delay);
-                    }
-                    if (queue.Count > 0)
-                    {
-                        action = queue.Dequeue();
-                    }
-                }
+                var action = queue.Pop(delay, idle);
 
                 if (action != null)
                 {

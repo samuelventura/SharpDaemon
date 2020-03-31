@@ -13,24 +13,21 @@ namespace SharpDaemon
 
         public static void Log(string level, string format, params object[] args)
         {
-            var ts = DateTime.Now.Ticks;
             var text = Tools.Format(format, args);
-            foreach (var line in text.Split('\n')) Stdio.WriteLine("#{0} {1} {2}", level, ts, text);
+            foreach (var line in text.Split('\n')) Stdio.WriteLine("#{0} {1}", level, text);
         }
     }
 
     public class Log
     {
         public string Level;
-        public DateTime Timestamp;
         public string Message;
 
         public static void Parse(Log log, string line)
         {
-            var parts = line.Split(new char[] { ' ' }, 3);
+            var parts = line.Split(new char[] { ' ' }, 2);
             log.Level = ParseLevel(parts[0]);
-            log.Timestamp = new DateTime(long.Parse(parts[1]));
-            log.Message = parts[2];
+            log.Message = parts[1];
         }
 
         public static string ParseLevel(string prefix)
