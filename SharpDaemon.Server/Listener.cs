@@ -80,7 +80,7 @@ namespace SharpDaemon.Server
                     disposer.Push(client);
                     var stream = client.GetStream();
                     var endpoint = client.Client.RemoteEndPoint as IPEndPoint;
-                    output.Output("Client connected from {0}", endpoint);
+                    output.Output("Client {0} connected", endpoint);
                     var runner = new Runner(new Runner.Args { ExceptionHandler = handler });
                     disposer.Push(runner);
                     var rt = new ClientRt
@@ -97,7 +97,7 @@ namespace SharpDaemon.Server
                     };
                     clients.Add(rt);
                     runner.Run(rt.Loop);
-                    output.Output("Client {0} added", endpoint);
+                    output.Output("Client {0} registered", endpoint);
                     disposer.Clear();
                 }
             });
@@ -124,8 +124,7 @@ namespace SharpDaemon.Server
                         named.Output("Endpoint|Start");
                         foreach (var rt in clients)
                         {
-                            var start = rt.Start.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                            named.Output("{0}|{1}", rt.EndPoint, start);
+                            named.Output("{0}|{1}", rt.EndPoint, Tools.Format(rt.Start));
                         }
                         named.Output("{0} client(s)", clients.Count);
                     }, named.OnException);
@@ -165,9 +164,9 @@ namespace SharpDaemon.Server
             var line = Reader.ReadLine();
             while (line != null)
             {
-                Output.Output("{0} < {1}", EndPoint, line);
+                Output.Output("Client {0} < {1}", EndPoint, line);
                 var tokens = Tools.Tokens(line, Writer);
-                if (tokens != null && tokens.Length > 0) Shell.OnLine(tokens, Writer);
+                if (tokens != null && tokens.Length > 0) Shell.Execute(tokens, Writer);
                 line = Reader.ReadLine();
             }
         }

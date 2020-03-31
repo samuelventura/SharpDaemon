@@ -75,13 +75,12 @@ namespace SharpDaemon.Server
                         var dtos = Database.List(dbpath);
                         foreach (var dto in dtos)
                         {
-                            var created = dto.Created.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                            named.Output("{0}|{1}|{2}|{3}", dto.Id, created, dto.Path, dto.Args);
+                            named.Output("{0}|{1}|{2}|{3}", dto.Id, Tools.Format(dto.Created), dto.Path, dto.Args);
                         }
                         named.Output("{0} daemon(s)", dtos.Count);
                     }, named.OnException);
                 }
-                if (tokens.Length == 5 && tokens[1] == "install")
+                if ((tokens.Length == 4 || tokens.Length == 5) && tokens[1] == "install")
                 {
                     runner.Run(() =>
                     {
@@ -89,8 +88,9 @@ namespace SharpDaemon.Server
                         {
                             Id = tokens[2],
                             Path = tokens[3],
-                            Args = tokens[4],
+                            Args = tokens.Length > 4 ? tokens[4] : string.Empty,
                         };
+                        named.Output("Installing... {0}|{1}|{2}|{3}", dto.Id, Tools.Format(dto.Created), dto.Path, dto.Args);
                         Database.Save(dbpath, dto);
                         controller.Execute(tokens, output);
                     }, named.OnException);
@@ -100,6 +100,7 @@ namespace SharpDaemon.Server
                     runner.Run(() =>
                     {
                         var id = tokens[2];
+                        named.Output("Uninstalling... {0}", id);
                         Database.Remove(dbpath, id);
                         controller.Execute(tokens, output);
                     }, named.OnException);

@@ -8,7 +8,7 @@ namespace SharpDaemon.Service
     {
         public static readonly string NAME = "DaemonManager";
 
-        private Listener listener;
+        private Instance instance;
 
         public Program()
         {
@@ -19,14 +19,16 @@ namespace SharpDaemon.Service
         {
             base.OnStart(args);
 
-            listener = new Listener();
+            var outputs = new Outputs();
+            var cargs = Launcher.ParseCli(outputs, args);
+            instance = Launcher.Launch(outputs, cargs);
         }
 
         protected override void OnStop()
         {
             base.OnStop();
 
-            Tools.Try(listener.Dispose);
+            Tools.Try(instance.Dispose);
         }
 
         static void Main(string[] args)

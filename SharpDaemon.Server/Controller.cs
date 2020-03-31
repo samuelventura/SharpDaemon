@@ -46,7 +46,7 @@ namespace SharpDaemon.Server
             if (tokens[0] == "daemon")
             {
                 var named = new NamedOutput("CONTROLLER", output);
-                if (tokens.Length == 5 && tokens[1] == "install")
+                if ((tokens.Length == 4 || tokens.Length == 5) && tokens[1] == "install")
                 {
                     runner.Run(() =>
                     {
@@ -54,9 +54,9 @@ namespace SharpDaemon.Server
                         {
                             Id = tokens[2],
                             Path = tokens[3],
-                            Args = tokens[4],
+                            Args = tokens.Length > 4 ? tokens[4] : string.Empty,
                         };
-                        Tools.Assert(daemons.ContainsKey(dto.Id), "Daemon {0} already installed", dto.Id);
+                        Tools.Assert(!daemons.ContainsKey(dto.Id), "Daemon {0} already installed", dto.Id);
                         DoStart(dto);
                     }, named.OnException);
                 }
@@ -65,7 +65,7 @@ namespace SharpDaemon.Server
                     runner.Run(() =>
                     {
                         var id = tokens[2];
-                        Tools.Assert(!daemons.ContainsKey(id), "Unknown daemon {0} to uninstall", id);
+                        Tools.Assert(daemons.ContainsKey(id), "Daemon {0} is not installed", id);
                         DoStop(id);
                     }, named.OnException);
                 }
@@ -78,7 +78,7 @@ namespace SharpDaemon.Server
             runner.Run(() =>
             {
                 var id = dto.Id;
-                Tools.Assert(!daemons.ContainsKey(id), "Unknown daemon {0} to restart", id);
+                Tools.Assert(daemons.ContainsKey(id), "Daemon {0} is not installed", id);
                 DoStop(id);
                 DoStart(dto);
             });

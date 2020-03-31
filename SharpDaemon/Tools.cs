@@ -9,7 +9,8 @@ namespace SharpDaemon
 {
     public static class Tools
     {
-
+        public static string Compact(DateTime dt) => dt.ToString("yyyyMMdd_HHmmss_fff");
+        public static string Format(DateTime dt) => dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
         public static string Format(string format, params object[] args)
         {
             var text = format;
@@ -46,13 +47,12 @@ namespace SharpDaemon
 
         public static Exception Make(string format, params object[] args)
         {
-            var line = format;
-            if (args.Length > 0) line = string.Format(format, args);
-            return new Exception(line);
+            return new Exception(Format(format, args));
         }
 
-        public static string Relative(string child)
+        public static string Relative(string format, params object[] args)
         {
+            var child = Format(format, args);
             var exe = Assembly.GetExecutingAssembly().Location;
             var root = Path.GetDirectoryName(exe);
             return Path.Combine(root, child);

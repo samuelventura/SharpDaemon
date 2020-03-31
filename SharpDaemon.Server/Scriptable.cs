@@ -60,7 +60,7 @@ namespace SharpDaemon.Server
         }
     }
 
-    public class Shell
+    public class Shell : IScriptable
     {
         private readonly List<IScriptable> scriptables;
 
@@ -69,7 +69,7 @@ namespace SharpDaemon.Server
             this.scriptables = scriptables;
         }
 
-        public void OnLine(string[] tokens, Output output)
+        public void Execute(string[] tokens, Output output)
         {
             var list = new List<string>(tokens);
             foreach (var script in scriptables)

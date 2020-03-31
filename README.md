@@ -24,6 +24,7 @@ dotnet test SharpDaemon.Test
 #console output for test cases
 dotnet test SharpDaemon.Test -v n
 #run (ctrl+c to exit)
+dotnet run -p SharpDaemon.Server -- port=5667
 dotnet run -p SharpDaemon.Server
 ```
 
