@@ -12,34 +12,33 @@ namespace SharpDaemon.Server
         private readonly ShellFactory factory;
         private readonly HashSet<ClientRt> clients;
         private readonly Action<Exception> handler;
+        private readonly IPEndPoint endpoint;
         private readonly TcpListener server;
         private readonly Runner accepter;
         private readonly Runner register;
         private readonly Output output;
-        private readonly int port;
 
         public class Args
         {
             public int TcpPort { get; set; }
+            public string IpAddress { get; set; }
             public Output Output { get; set; }
             public ShellFactory ShellFactory { get; set; }
             public Action<Exception> ExceptionHandler { get; set; }
         }
 
-        public Listener(Args args = null)
+        public Listener(Args args)
         {
-            args = args ?? new Args();
-            port = args.TcpPort;
             output = args.Output;
             factory = args.ShellFactory;
             handler = args.ExceptionHandler;
             clients = new HashSet<ClientRt>();
-            server = new TcpListener(IPAddress.Any, port);
+            server = new TcpListener(IPAddress.Parse(args.IpAddress), args.TcpPort);
             using (var disposer = new Disposer(handler))
             {
                 disposer.Push(server.Stop);
                 server.Start();
-                port = ((IPEndPoint)server.LocalEndpoint).Port;
+                endpoint = server.LocalEndpoint as IPEndPoint;
                 register = new Runner(new Runner.Args { ExceptionHandler = handler });
                 disposer.Push(register);
                 accepter = new Runner(new Runner.Args { ExceptionHandler = handler });
@@ -55,7 +54,7 @@ namespace SharpDaemon.Server
             accepter.Run(AcceptLoop);
         }
 
-        public int Port { get { return port; } }
+        public IPEndPoint EndPoint { get { return endpoint; } }
 
         public void Dispose()
         {

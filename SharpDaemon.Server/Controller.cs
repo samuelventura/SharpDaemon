@@ -19,9 +19,8 @@ namespace SharpDaemon.Server
             public Action<Exception> ExceptionHandler { get; set; }
         }
 
-        public Controller(Args args = null)
+        public Controller(Args args)
         {
-            args = args ?? new Args();
             delay = args.RestartDelay;
             logger = args.DaemonLogger;
             handler = args.ExceptionHandler;

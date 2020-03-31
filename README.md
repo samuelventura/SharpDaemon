@@ -1,6 +1,6 @@
 # SharpDaemon
 
-Windows Daemon Manager
+Windows Remote Daemon Manager
 
 ## Documentation
 
@@ -18,15 +18,18 @@ No documentation yet.
 #nuget packing and publishing
 dotnet clean SharpDaemon -c Release
 dotnet pack SharpDaemon -c Release
+dotnet publish SharpDaemon.Service -c Release
 #cross platform test cases
 dotnet test SharpDaemon.Test
 #console output for test cases
 dotnet test SharpDaemon.Test -v n
-#run with specific framework
-dotnet run --project SharpDaemon --framework net40
-dotnet publish SharpDaemon -c Release --framework net40
+#run (ctrl+c to exit)
+dotnet run -p SharpDaemon.Server
 ```
 
 ## TODO
 
 - [ ] Improve documentation and samples
+- [ ] Implement download and install
+- [ ] Implement secure connection
+

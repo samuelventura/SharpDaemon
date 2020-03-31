@@ -1,18 +1,20 @@
 ﻿using System;
+using System.Net;
 
 namespace SharpDaemon.Server
 {
     public class Instance : IDisposable
     {
         private readonly ShellFactory factory;
+        private readonly IPEndPoint endpoint;
         private readonly Listener listener;
         private readonly Manager manager;
         private readonly Outputs outputs;
-        private readonly int port;
 
         public class Args
         {
             public int RestartDelay { get; set; }
+            public string IpAddress { get; set; }
             public int TcpPort { get; set; }
             public string DbPath { get; set; }
             public string Downloads { get; set; }
@@ -30,6 +32,7 @@ namespace SharpDaemon.Server
                 named.Output("RestartDelay {0}", args.RestartDelay);
                 named.Output("TcpPort {0}", args.TcpPort);
                 factory = new ShellFactory();
+                factory.Add(new SystemScriptable());
                 var controller = new Controller(new Controller.Args
                 {
                     ExceptionHandler = OnException,
@@ -50,12 +53,13 @@ namespace SharpDaemon.Server
                 listener = new Listener(new Listener.Args
                 {
                     ExceptionHandler = OnException,
+                    IpAddress = args.IpAddress,
                     ShellFactory = factory,
                     TcpPort = args.TcpPort,
                     Output = outputs,
                 });
                 disposer.Push(listener);
-                port = listener.Port;
+                endpoint = listener.EndPoint;
                 factory.Add(listener);
                 factory.Add(manager);
                 //fill factory before start
@@ -64,7 +68,7 @@ namespace SharpDaemon.Server
             }
         }
 
-        public int Port { get { return port; } }
+        public IPEndPoint EndPoint { get { return endpoint; } }
 
         public Shell CreateShell() { return factory.Create(); }
 

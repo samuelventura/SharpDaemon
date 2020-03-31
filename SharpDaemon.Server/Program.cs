@@ -16,7 +16,8 @@ namespace SharpDaemon.Server
             var named = new NamedOutput("PROGRAM", outputs);
 
             var port = 0;
-            var workspace = null as string;
+            var ip = "0.0.0.0";
+            var ws = Tools.Relative("Workspace");
 
             foreach (var arg in args)
             {
@@ -26,13 +27,17 @@ namespace SharpDaemon.Server
                 {
                     port = int.Parse(arg.Split(new char[] { '=' }, 2)[1]);
                 }
-                if (arg.StartsWith("workspace="))
+                if (arg.StartsWith("ws="))
                 {
-                    workspace = arg.Split(new char[] { '=' }, 2)[1].Replace("[20]", " ");
+                    ws = arg.Split(new char[] { '=' }, 2)[1].Replace("[20]", " ");
+                }
+                if (arg.StartsWith("ip="))
+                {
+                    ip = arg.Split(new char[] { '=' }, 2)[1];
                 }
             }
 
-            using (var instance = Launch(outputs, port, workspace))
+            using (var instance = Launch(outputs, ip, port, ws))
             {
                 named.Output("ReadLine loop...");
                 var shell = instance.CreateShell();
@@ -49,11 +54,9 @@ namespace SharpDaemon.Server
             Environment.Exit(0);
         }
 
-        public static Instance Launch(Outputs outputs, int port = 0, string workspace = null)
+        public static Instance Launch(Outputs outputs, string ip, int port, string workspace)
         {
             var named = new NamedOutput("LAUNCHER", outputs);
-
-            workspace = workspace ?? Tools.Relative("Workspace");
 
             var dbpath = Path.Combine(workspace, "daemons.db");
             var logpath = Path.Combine(workspace, "daemons.txt");
@@ -76,10 +79,11 @@ namespace SharpDaemon.Server
                     Downloads = downloads,
                     Outputs = outputs,
                     TcpPort = port,
+                    IpAddress = ip,
                 });
                 disposer.Push(instance);
-                named.Output("Listening at {0}", instance.Port);
-                File.WriteAllText(portpath, instance.Port.ToString());
+                named.Output("Listening on {0}", instance.EndPoint);
+                File.WriteAllText(portpath, instance.EndPoint.Port.ToString());
                 disposer.Clear();
                 return instance;
             }
