@@ -22,12 +22,13 @@ namespace SharpDaemon.Server
         public Instance(Args args)
         {
             outputs = args.Outputs;
+            var named = new NamedOutput("INSTANCE", outputs);
             using (var disposer = new Disposer())
             {
-                outputs.Output("DbPath {0}", args.DbPath);
-                outputs.Output("Downloads {0}", args.Downloads);
-                outputs.Output("RestartDelay {0}", args.RestartDelay);
-                outputs.Output("TcpPort {0}", args.TcpPort);
+                named.Output("DbPath {0}", args.DbPath);
+                named.Output("Downloads {0}", args.Downloads);
+                named.Output("RestartDelay {0}", args.RestartDelay);
+                named.Output("TcpPort {0}", args.TcpPort);
                 factory = new ShellFactory();
                 var controller = new Controller(new Controller.Args
                 {
@@ -76,7 +77,7 @@ namespace SharpDaemon.Server
         //called from many threads
         private void OnDaemonLog(DaemonLog log)
         {
-            outputs.Output(log.Timestamp, "{0} {1} {2} {3} {4}",
+            outputs.Output(log.Timestamp, "DAEMON {0} {1} {2} {3} {4}",
                 log.Level, log.Uid, log.Name, log.Pid, log.Message);
         }
 
@@ -84,7 +85,7 @@ namespace SharpDaemon.Server
         private void OnException(Exception ex)
         {
             Tools.Try(() => Tools.Dump(ex));
-            outputs.Output(ex.ToString());
+            outputs.Output("UNHANDLED {0}", ex.ToString());
         }
     }
 }

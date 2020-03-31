@@ -13,9 +13,8 @@ namespace SharpDaemon
 
         public static void Log(string level, string format, params object[] args)
         {
-            var text = format;
             var ts = DateTime.Now.Ticks;
-            if (args.Length > 0) text = string.Format(format, args);
+            var text = Tools.Format(format, args);
             foreach (var line in text.Split('\n')) Stdio.WriteLine("#{0} {1} {2}", level, ts, text);
         }
     }

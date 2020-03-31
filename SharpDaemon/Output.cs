@@ -21,7 +21,7 @@ namespace SharpDaemon
         public void Output(string format, params object[] args)
         {
             var dtt = Format(DateTime.Now);
-            var text = Format(format, args);
+            var text = Tools.Format(format, args);
 
             foreach (var output in outputs)
             {
@@ -32,7 +32,7 @@ namespace SharpDaemon
         public void Output(DateTime dt, string format, params object[] args)
         {
             var dtt = Format(dt);
-            var text = Format(format, args);
+            var text = Tools.Format(format, args);
 
             foreach (var output in outputs)
             {
@@ -40,14 +40,30 @@ namespace SharpDaemon
             }
         }
 
-        private string Format(string format, params object[] args)
+        private string Format(DateTime dt) => dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
+    }
+
+    public class NamedOutput : Output
+    {
+        private readonly Output output;
+        private readonly string name;
+
+        public NamedOutput(string name, Output output)
         {
-            var text = format;
-            if (args.Length > 0) text = string.Format(format, args);
-            return text;
+            this.name = name;
+            this.output = output;
         }
 
-        private string Format(DateTime dt) => dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        public void Output(string format, params object[] args)
+        {
+            var text = Tools.Format(format, args);
+            output.Output("{0} {1}", name, text);
+        }
+
+        public void OnException(Exception ex)
+        {
+            output.Output("{0} {1}", name, ex.ToString());
+        }
     }
 
     public class StdOutput : Output

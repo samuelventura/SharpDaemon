@@ -36,8 +36,8 @@ namespace SharpDaemon.Server
 
     public class DaemonDto
     {
-        public string Id { get; set; };
-        public DateTime Created { get; set; };
+        public string Id { get; set; }
+        public DateTime Created { get; set; }
         public string Path { get; set; }
         public string Args { get; set; }
 

@@ -13,12 +13,14 @@ namespace SharpDaemon.Server
             var outputs = new Outputs();
             outputs.Add(stdout);
 
+            var named = new NamedOutput("PROGRAM", outputs);
+
             var port = 0;
             var workspace = null as string;
 
             foreach (var arg in args)
             {
-                stdout.Output(arg);
+                named.Output(arg);
 
                 if (arg.StartsWith("port="))
                 {
@@ -32,16 +34,16 @@ namespace SharpDaemon.Server
 
             using (var instance = Launch(outputs, port, workspace))
             {
-                stdout.Output("ReadLine loop...");
+                named.Output("ReadLine loop...");
                 var shell = instance.CreateShell();
                 var line = Console.ReadLine();
                 while (line != null)
                 {
                     var tokens = Tools.Tokens(line, stdout);
-                    if (tokens != null) shell.OnLine(tokens, stdout);
+                    if (tokens != null && tokens.Length > 0) shell.OnLine(tokens, stdout);
                     line = Console.ReadLine();
                 }
-                stdout.Output("Stdin closed");
+                named.Output("Stdin closed");
             }
 
             Environment.Exit(0);
@@ -49,6 +51,7 @@ namespace SharpDaemon.Server
 
         public static Instance Launch(Outputs outputs, int port = 0, string workspace = null)
         {
+            var named = new NamedOutput("LAUNCHER", outputs);
 
             workspace = workspace ?? Tools.Relative("Workspace");
 
@@ -75,7 +78,7 @@ namespace SharpDaemon.Server
                     TcpPort = port,
                 });
                 disposer.Push(instance);
-                outputs.Output("Listening at {0}", instance.Port);
+                named.Output("Listening at {0}", instance.Port);
                 File.WriteAllText(portpath, instance.Port.ToString());
                 disposer.Clear();
                 return instance;

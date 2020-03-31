@@ -117,18 +117,19 @@ namespace SharpDaemon.Server
         {
             if (tokens[0] == "client")
             {
+                var named = new NamedOutput("LISTENER", output);
                 if (tokens.Length == 2 && tokens[1] == "list")
                 {
                     register.Run(() =>
                     {
-                        output.Output("Endpoint|Start");
+                        named.Output("Endpoint|Start");
                         foreach (var rt in clients)
                         {
                             var start = rt.Start.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                            output.Output("{0}|{1}", rt.EndPoint, start);
+                            named.Output("{0}|{1}", rt.EndPoint, start);
                         }
-                        output.Output("{0} client(s)", clients.Count);
-                    });
+                        named.Output("{0} client(s)", clients.Count);
+                    }, named.OnException);
                 }
             }
         }
@@ -167,7 +168,7 @@ namespace SharpDaemon.Server
             {
                 Output.Output("{0} < {1}", EndPoint, line);
                 var tokens = Tools.Tokens(line, Writer);
-                if (tokens != null) Shell.OnLine(tokens, Writer);
+                if (tokens != null && tokens.Length > 0) Shell.OnLine(tokens, Writer);
                 line = Reader.ReadLine();
             }
         }

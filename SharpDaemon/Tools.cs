@@ -9,6 +9,14 @@ namespace SharpDaemon
 {
     public static class Tools
     {
+
+        public static string Format(string format, params object[] args)
+        {
+            var text = format;
+            if (args.Length > 0) text = string.Format(format, args);
+            return text;
+        }
+
         public static void ExceptionHandler(object sender, UnhandledExceptionEventArgs args)
         {
             ExceptionHandler(args.ExceptionObject as Exception);

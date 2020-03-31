@@ -41,14 +41,15 @@ namespace SharpDaemon.Server
 
         public void Start(Output output)
         {
+            var named = new NamedOutput("MANAGER", output);
             runner.Run(() =>
             {
-                output.Output("Loading daemons...");
+                named.Output("Loading daemons...");
                 var dtos = Database.List(dbpath);
                 foreach (var dto in dtos)
                 {
                     var created = dto.Created.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                    output.Output("Loading daemon {0}|{1}|{2}|{3}", dto.Id, created, dto.Path, dto.Args);
+                    named.Output("Loading daemon {0}|{1}|{2}|{3}", dto.Id, created, dto.Path, dto.Args);
                     var list = new List<string>();
                     list.Add("daemon");
                     list.Add("install");
@@ -57,27 +58,28 @@ namespace SharpDaemon.Server
                     list.Add(dto.Args);
                     controller.Execute(list.ToArray(), output);
                 }
-                output.Output("{0} daemon(s) loaded", dtos.Count);
-            }, (ex) => output.Output(ex.ToString()));
+                named.Output("{0} daemon(s) loaded", dtos.Count);
+            }, named.OnException);
         }
 
         public void Execute(string[] tokens, Output output)
         {
             if (tokens[0] == "daemon")
             {
+                var named = new NamedOutput("MANAGER", output);
                 if (tokens.Length == 2 && tokens[1] == "list")
                 {
                     runner.Run(() =>
                     {
-                        output.Output("Id|Created|Path|Args");
+                        named.Output("Id|Created|Path|Args");
                         var dtos = Database.List(dbpath);
                         foreach (var dto in dtos)
                         {
                             var created = dto.Created.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                            output.Output("{0}|{1}|{2}|{3}", dto.Id, created, dto.Path, dto.Args);
+                            named.Output("{0}|{1}|{2}|{3}", dto.Id, created, dto.Path, dto.Args);
                         }
-                        output.Output("{0} daemon(s)", dtos.Count);
-                    }, (ex) => output.Output(ex.ToString()));
+                        named.Output("{0} daemon(s)", dtos.Count);
+                    }, named.OnException);
                 }
                 if (tokens.Length == 5 && tokens[1] == "install")
                 {
@@ -91,7 +93,7 @@ namespace SharpDaemon.Server
                         };
                         Database.Save(dbpath, dto);
                         controller.Execute(tokens, output);
-                    }, (ex) => output.Output(ex.ToString()));
+                    }, named.OnException);
                 }
                 if (tokens.Length == 3 && tokens[1] == "uninstall")
                 {
@@ -100,7 +102,7 @@ namespace SharpDaemon.Server
                         var id = tokens[2];
                         Database.Remove(dbpath, id);
                         controller.Execute(tokens, output);
-                    }, (ex) => output.Output(ex.ToString()));
+                    }, named.OnException);
                 }
             }
         }
