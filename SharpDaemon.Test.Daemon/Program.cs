@@ -12,8 +12,17 @@ namespace SharpDaemon.Test.Daemon
 
             foreach (var arg in args)
             {
-                Logger.Info("Arg {0}", arg);
+                Logger.Debug("Arg {0}", arg);
             }
+
+            var cmd = string.Join(" ", args);
+
+            if (cmd.StartsWith("echo"))
+            {
+                Logger.Info(cmd.Substring("echo".Length).Trim());
+            }
+
+            Environment.Exit(0);
         }
     }
 }

@@ -39,6 +39,7 @@ namespace SharpDaemon.Server
                     ExceptionHandler = OnException,
                     DaemonLogger = OnDaemonLog,
                     RestartDelay = args.RestartDelay,
+                    Output = outputs,
                 });
                 disposer.Push(controller);
                 manager = new Manager(new Manager.Args

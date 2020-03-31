@@ -7,6 +7,7 @@ namespace SharpDaemon.Server
     {
         public class CliArgs
         {
+            public int Delay;
             public int Port;
             public string Ip;
             public string Ws;
@@ -17,6 +18,7 @@ namespace SharpDaemon.Server
             var cargs = new CliArgs
             {
                 Port = 0,
+                Delay = 0,
                 Ip = "127.0.0.1",
                 Ws = Tools.Relative("Workspace"),
             };
@@ -25,6 +27,10 @@ namespace SharpDaemon.Server
             {
                 output.Output(arg);
 
+                if (arg.StartsWith("delay="))
+                {
+                    cargs.Delay = int.Parse(arg.Split(new char[] { '=' }, 2)[1]);
+                }
                 if (arg.StartsWith("port="))
                 {
                     cargs.Port = int.Parse(arg.Split(new char[] { '=' }, 2)[1]);
@@ -63,7 +69,7 @@ namespace SharpDaemon.Server
                 var instance = new Instance(new Instance.Args
                 {
                     DbPath = dbpath,
-                    RestartDelay = 2000,
+                    RestartDelay = args.Delay,
                     Downloads = downloads,
                     Outputs = outputs,
                     TcpPort = args.Port,

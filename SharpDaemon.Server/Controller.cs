@@ -8,6 +8,7 @@ namespace SharpDaemon.Server
     {
         private readonly int delay;
         private readonly Runner runner;
+        private readonly Output output;
         private readonly Action<DaemonLog> logger;
         private readonly Action<Exception> handler;
         private readonly Dictionary<string, DaemonRT> daemons;
@@ -15,6 +16,7 @@ namespace SharpDaemon.Server
         public class Args
         {
             public int RestartDelay { get; set; }
+            public Output Output { get; set; }
             public Action<DaemonLog> DaemonLogger { get; set; }
             public Action<Exception> ExceptionHandler { get; set; }
         }
@@ -24,6 +26,7 @@ namespace SharpDaemon.Server
             delay = args.RestartDelay;
             logger = args.DaemonLogger;
             handler = args.ExceptionHandler;
+            output = new NamedOutput("CONTROLLER", args.Output);
             daemons = new Dictionary<string, DaemonRT>();
             runner = new Runner(new Runner.Args { ExceptionHandler = handler });
         }
@@ -57,7 +60,9 @@ namespace SharpDaemon.Server
                             Args = tokens.Length > 4 ? tokens[4] : string.Empty,
                         };
                         Tools.Assert(!daemons.ContainsKey(dto.Id), "Daemon {0} already installed", dto.Id);
-                        DoStart(dto);
+                        named.Output("Process starting... {0}|{1}|{2}", dto.Id, dto.Path, dto.Args);
+                        var rt = DoStart(dto);
+                        named.Output("Process started {0} {1}", rt.Process.Name, rt.Process.Id);
                     }, named.OnException);
                 }
                 if (tokens.Length == 3 && tokens[1] == "uninstall")
@@ -74,6 +79,7 @@ namespace SharpDaemon.Server
 
         private void Restart(DaemonDto dto)
         {
+            output.Output("Daemon {0} restarting in {1}ms", dto.Id, delay);
             Thread.Sleep(delay);
             runner.Run(() =>
             {
@@ -84,25 +90,38 @@ namespace SharpDaemon.Server
             });
         }
 
-        private void DoStart(DaemonDto dto)
+        private DaemonRT DoStart(DaemonDto dto)
         {
-            var rt = new DaemonRT()
+            using (var disposer = new Disposer())
             {
-                Id = dto.Id,
-                Path = dto.Path,
-                Args = dto.Args,
-                Logger = logger,
-                Handler = handler,
-                Restart = Restart,
-                Process = new DaemonProcess(new DaemonProcess.Args
+
+                var process = new DaemonProcess(new DaemonProcess.Args
                 {
                     Executable = dto.Path,
                     Arguments = dto.Args,
                     ExceptionHandler = handler,
-                }),
-                Runner = new Runner(new Runner.Args { ExceptionHandler = handler }),
-            };
-            daemons[dto.Id] = rt;
+                });
+                disposer.Push(process);
+                var runner = new Runner(new Runner.Args { ExceptionHandler = handler });
+                disposer.Push(runner);
+                var rt = new DaemonRT()
+                {
+                    Id = dto.Id,
+                    Path = dto.Path,
+                    Args = dto.Args,
+                    Logger = logger,
+                    Handler = handler,
+                    Restart = Restart,
+                    Process = process,
+                    Runner = runner,
+                };
+                daemons[dto.Id] = rt;
+                //runner wont exit otherwise
+                disposer.Push(process);
+                runner.Run(rt.ReadLoop);
+                disposer.Clear();
+                return rt;
+            }
         }
 
         private void DoStop(string id)
@@ -135,13 +154,13 @@ namespace SharpDaemon.Server
             {
                 if (line.StartsWith("#"))
                 {
-                    Tools.Try(() => TryLog(line), Handler);
+                    Tools.Try(() => ParseAndLog(line), Handler);
                 }
                 line = Process.ReadLine();
             }
         }
 
-        private void TryLog(string line)
+        private void ParseAndLog(string line)
         {
             var log = new DaemonLog()
             {
@@ -150,7 +169,7 @@ namespace SharpDaemon.Server
                 Name = Process.Name,
             };
             Log.Parse(log, line);
-            Logger?.Invoke(log);
+            Logger(log);
         }
     }
 
