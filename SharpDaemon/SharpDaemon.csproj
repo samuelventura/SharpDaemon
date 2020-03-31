@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net40</TargetFramework>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PackageId>SharpDaemon</PackageId>
+    <PackageVersion>1.0.1.0</PackageVersion>
+    <PackageProjectUrl>https://github.com/samuelventura/SharpDaemon</PackageProjectUrl>  
+    <PackageTags>Daemon Tools</PackageTags>    
+    <Authors>Samuel Ventura</Authors>
+    <Description>Windows Daemon Tools</Description>
+    <License>https://www.apache.org/licenses/LICENSE-2.0</License>  
+  </PropertyGroup>
+
+</Project>
