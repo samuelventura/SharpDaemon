@@ -69,8 +69,7 @@ namespace SharpDaemon
         public string ReadLine()
         {
             var line = process.StandardOutput.ReadLine();
-            if (line == null) throw Tools.Make("Daemon process EOF");
-            if (line.StartsWith("!"))
+            if (line != null && line.StartsWith("!"))
             {
                 var trace = process.StandardOutput.ReadToEnd();
                 throw new ProcessException(line.Substring(1), trace);

@@ -16,9 +16,12 @@ namespace SharpDaemon
         {
             lock (locker)
             {
-                Tools.Try(() => Dispose(disposed));
-                if (!disposed) Counter.Minus(this);
-                disposed = true;
+                if (!disposed)
+                {
+                    Tools.Try(() => Dispose(disposed));
+                    Counter.Minus(this);
+                    disposed = true;
+                }
             }
         }
 

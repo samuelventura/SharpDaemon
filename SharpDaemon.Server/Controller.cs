@@ -1,23 +1,21 @@
 ﻿using System;
-using System.Threading;
 using System.Collections.Generic;
 
 namespace SharpDaemon.Server
 {
-    public class Controller : IDisposable, IScriptable
+    public class Controller : Disposable, IScriptable
     {
         private readonly int delay;
-        private readonly Runner runner;
-        private readonly Runner restarter;
         private readonly Output output;
+        private readonly Runner runner;
         private readonly Action<DaemonLog> logger;
         private readonly Action<Exception> handler;
         private readonly Dictionary<string, DaemonRT> daemons;
 
         public class Args
         {
-            public int RestartDelay { get; set; }
             public Output Output { get; set; }
+            public int RestartDelay { get; set; }
             public Action<DaemonLog> DaemonLogger { get; set; }
             public Action<Exception> ExceptionHandler { get; set; }
         }
@@ -29,28 +27,13 @@ namespace SharpDaemon.Server
             handler = args.ExceptionHandler;
             output = new NamedOutput("CONTROLLER", args.Output);
             daemons = new Dictionary<string, DaemonRT>();
-            using (var disposer = new Disposer())
+            runner = new Runner(new Runner.Args
             {
-                runner = new Runner(new Runner.Args { ExceptionHandler = handler });
-                disposer.Push(runner);
-                restarter = new Runner(new Runner.Args { ExceptionHandler = handler });
-                disposer.Push(restarter);
-                disposer.Clear();
-            }
-        }
-
-        public void Dispose()
-        {
-            runner.Dispose(() =>
-            {
-                foreach (var rt in daemons.Values)
-                {
-                    Tools.Try(rt.Process.Dispose, handler);
-                    Tools.Try(rt.Runner.Dispose, handler);
-                }
-                daemons.Clear();
+                ThreadName = "Controller",
+                ExceptionHandler = handler,
+                IdleAction = IdleLoop,
+                IdleDelay = 1,
             });
-            restarter.Dispose();
         }
 
         public void Execute(Output output, params string[] tokens)
@@ -68,10 +51,15 @@ namespace SharpDaemon.Server
                             Path = tokens[3],
                             Args = tokens.Length > 4 ? tokens[4] : string.Empty,
                         };
-                        Tools.Assert(!daemons.ContainsKey(dto.Id), "Daemon {0} already installed", dto.Id);
-                        named.Output("Process starting... {0}|{1}|{2}", dto.Id, dto.Path, dto.Args);
+                        var id = dto.Id;
+                        if (daemons.ContainsKey(id))
+                        {
+                            named.Output("Daemon {0} already installed", id);
+                            return;
+                        }
+                        named.Output("Daemon starting... {0}|{1}|{2}", dto.Id, dto.Path, dto.Args);
                         var rt = DoStart(dto);
-                        named.Output("Process started {0} {1}", rt.Process.Name, rt.Process.Id);
+                        named.Output("Daemon started {0} {1} {2}", rt.Dto.Id, rt.Process.Name, rt.Process.Id);
                     }, named.OnException);
                 }
                 if (tokens.Length == 3 && tokens[1] == "uninstall")
@@ -79,32 +67,57 @@ namespace SharpDaemon.Server
                     runner.Run(() =>
                     {
                         var id = tokens[2];
-                        Tools.Assert(daemons.ContainsKey(id), "Daemon {0} is not installed", id);
-                        DoStop(id);
+                        if (!daemons.ContainsKey(id))
+                        {
+                            named.Output("Daemon {0} is not installed", id);
+                            return;
+                        }
+                        Tools.Try(daemons[id].Dispose);
+                        daemons.Remove(id);
+                        named.Output("Daemon {0} stopped", id);
                     }, named.OnException);
                 }
             }
         }
 
-        private void Restart(DaemonRT rt, string uid)
+        protected override void Dispose(bool disposed)
         {
-            output.Output("Daemon {0} restarting in {1}ms", rt.Id, delay);
-            var dl = DateTime.Now.AddMilliseconds(delay);
-            restarter.Run(() =>
+            runner.Dispose(() =>
             {
-                //may assert before do stop
-                Dispose(rt);
-                while (DateTime.Now < dl) Thread.Sleep(1);
-                runner.Run(() =>
-                {
-                    var id = rt.Id;
-                    Tools.Assert(daemons.ContainsKey(id), "Daemon {0} is not installed", id);
-                    Tools.Assert(daemons[id].Uid == uid, "Daemon {0} is not installed with uid {1}", id, uid);
-                    output.Output("Daemon {0} restarting after {1}ms", rt.Id, delay);
-                    DoStop(id);
-                    DoStart(rt);
-                });
+                foreach (var rt in daemons.Values) Tools.Try(rt.Dispose);
+                daemons.Clear();
             });
+        }
+
+        //in process runner
+        private void Restart(DaemonRT rt)
+        {
+            runner.Run(() =>
+            {
+                var id = rt.Dto.Id;
+                rt.Restart = DateTime.Now.AddMilliseconds(delay);
+                Tools.Try(rt.Dispose);
+            });
+        }
+
+        //in controller runner
+        private void IdleLoop()
+        {
+            var restart = new List<DaemonRT>();
+            foreach (var rt in daemons.Values)
+            {
+                if (rt.Disposed
+                    && rt.Restart.HasValue
+                    && DateTime.Now > rt.Restart.Value)
+                    restart.Add(rt);
+            }
+            foreach (var rt in restart)
+            {
+                var id = rt.Dto.Id;
+                output.Output("Daemon {0} restarting after {1}ms", id, delay);
+                daemons.Remove(id);
+                DoStart(rt.Dto);
+            }
         }
 
         private DaemonRT DoStart(DaemonDto dto)
@@ -118,65 +131,50 @@ namespace SharpDaemon.Server
                     ExceptionHandler = handler,
                 });
                 disposer.Push(process);
-                var runner = new Runner(new Runner.Args { ExceptionHandler = handler });
-                disposer.Push(runner);
-                var rt = new DaemonRT()
+                var runner = new Runner(new Runner.Args
                 {
-                    Id = dto.Id,
-                    Path = dto.Path,
-                    Args = dto.Args,
+                    ThreadName = dto.Id,
+                    ExceptionHandler = handler,
+                });
+                disposer.Push(runner);
+                var rt = new DaemonRT
+                {
+                    Dto = dto,
                     Logger = logger,
-                    Handler = handler,
-                    Restart = Restart,
                     Process = process,
                     Runner = runner,
                 };
+                //ensure cleanup order
+                disposer.Push(rt);
                 daemons[dto.Id] = rt;
-                //runner wont exit otherwise
-                disposer.Push(process);
                 runner.Run(rt.ReadLoop);
+                runner.Run(() => Restart(rt));
                 disposer.Clear();
                 return rt;
             }
         }
-
-        private void DoStop(string id)
-        {
-            Dispose(daemons[id]);
-            daemons.Remove(id);
-        }
-
-        private void Dispose(DaemonRT rt)
-        {
-            Tools.Try(rt.Process.Dispose, handler);
-            Tools.Try(rt.Runner.Dispose, handler);
-        }
     }
 
-    public class DaemonRT : DaemonDto
+    class DaemonRT : Disposable
     {
-        public string Uid { get; set; } = Guid.NewGuid().ToString();
-        public Action<DaemonRT, string> Restart { get; set; }
-        public Action<DaemonLog> Logger { get; set; }
-        public Action<Exception> Handler { get; set; }
-        public Runner Runner { get; set; }
-        public DaemonProcess Process { get; set; }
+        public DaemonDto Dto;
+        public DateTime? Restart;
+        public Action<DaemonLog> Logger;
+        public DaemonProcess Process;
+        public Runner Runner;
 
-        public void ReadLoop()
+        protected override void Dispose(bool disposed)
         {
-            Tools.Try(TryLoop, Handler);
-            Restart(this, Uid);
+            Tools.Try(Process.Dispose);
+            Tools.Try(Runner.Dispose);
         }
 
-        private void TryLoop()
+        public void ReadLoop()
         {
             var line = Process.ReadLine();
             while (!string.IsNullOrWhiteSpace(line))
             {
-                if (line.StartsWith("#"))
-                {
-                    Tools.Try(() => ParseAndLog(line), Handler);
-                }
+                if (line.StartsWith("#")) ParseAndLog(line);
                 line = Process.ReadLine();
             }
         }
@@ -185,7 +183,7 @@ namespace SharpDaemon.Server
         {
             var log = new DaemonLog()
             {
-                Uid = Id,
+                Id = Dto.Id,
                 Pid = Process.Id,
                 Name = Process.Name,
             };
@@ -196,8 +194,8 @@ namespace SharpDaemon.Server
 
     public class DaemonLog : Log
     {
+        public string Id { get; set; }
         public int Pid { get; set; }
-        public string Uid { get; set; }
         public string Name { get; set; }
     }
 }

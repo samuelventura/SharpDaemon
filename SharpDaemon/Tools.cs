@@ -3,12 +3,24 @@ using System.IO;
 using System.Text;
 using System.Reflection;
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace SharpDaemon
 {
     public static class Tools
     {
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool SetHandleInformation(IntPtr hObject, uint dwMask, uint dwFlags);
+
+        public static void MakeNotInheritable(this TcpListener socket)
+        {
+            const uint HANDLE_FLAG_INHERIT = 1;
+            var handle = socket.Server.Handle;
+            SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+        }
+
         public static string Compact(DateTime dt) => dt.ToString("yyyyMMdd_HHmmss_fff");
         public static string Format(DateTime dt) => dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
         public static string Format(string format, params object[] args)
@@ -84,6 +96,18 @@ namespace SharpDaemon
         public static void Assert(bool condition, string format, params object[] args)
         {
             if (!condition) throw Make(format, args);
+        }
+
+        public static void SetProperty(object target, string line)
+        {
+            var parts = line.Split(new char[] { '=' });
+            if (parts.Length != 2) throw Make("Expected 2 parts in {0}", Readable(line));
+            var propertyName = parts[0];
+            var propertyValue = parts[1];
+            var property = target.GetType().GetProperty(propertyName);
+            if (property == null) throw Make("Property not found {0}", Readable(propertyName));
+            var value = Convert.ChangeType(propertyValue, property.PropertyType);
+            property.SetValue(target, value, null);
         }
 
         public static string[] Tokens(string line, Output output, char quote = '`')

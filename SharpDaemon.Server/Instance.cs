@@ -84,7 +84,7 @@ namespace SharpDaemon.Server
         private void OnDaemonLog(DaemonLog log)
         {
             outputs.Output("DAEMON {0} {1} {2} {3} {4}",
-                log.Level, log.Uid, log.Name, log.Pid, log.Message);
+                log.Level, log.Id, log.Name, log.Pid, log.Message);
         }
 
         //called from many threads

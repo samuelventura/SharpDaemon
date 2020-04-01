@@ -27,24 +27,36 @@ namespace SharpDaemon.Server
             public Action<Exception> ExceptionHandler { get; set; }
         }
 
+        public IPEndPoint EndPoint { get { return endpoint; } }
+
         public Listener(Args args)
         {
-            output = args.Output;
             factory = args.ShellFactory;
             handler = args.ExceptionHandler;
             clients = new HashSet<ClientRt>();
+            output = new NamedOutput("LISTENER", args.Output);
             server = new TcpListener(IPAddress.Parse(args.IpAddress), args.TcpPort);
             using (var disposer = new Disposer(handler))
             {
                 disposer.Push(server.Stop);
+                //daemons prevent stop from exiting accepter
+                server.MakeNotInheritable();
                 server.Start();
                 endpoint = server.LocalEndpoint as IPEndPoint;
-                register = new Runner(new Runner.Args { ExceptionHandler = handler });
+                register = new Runner(new Runner.Args
+                {
+                    ExceptionHandler = handler,
+                    ThreadName = "Register",
+                });
                 disposer.Push(register);
-                accepter = new Runner(new Runner.Args { ExceptionHandler = handler });
+                accepter = new Runner(new Runner.Args
+                {
+                    ExceptionHandler = handler,
+                    ThreadName = "Accepter",
+                });
                 disposer.Push(accepter);
-                //accepter wont exit otherwise
-                disposer.Push(server.Stop);
+                //no need to add stop to the end runners 
+                //will dispose because not accepting yet
                 disposer.Clear();
             }
         }
@@ -54,15 +66,15 @@ namespace SharpDaemon.Server
             accepter.Run(AcceptLoop);
         }
 
-        public IPEndPoint EndPoint { get { return endpoint; } }
-
         protected override void Dispose(bool disposed)
         {
             Tools.Try(server.Stop);
             Tools.Try(accepter.Dispose);
-            Tools.Try(register.Dispose);
-            foreach (var rt in clients) Tools.Try(rt.Dispose);
-            clients.Clear();
+            register.Dispose(() =>
+            {
+                foreach (var rt in clients) Tools.Try(rt.Dispose);
+                clients.Clear();
+            });
         }
 
         private void AcceptLoop()
@@ -90,14 +102,16 @@ namespace SharpDaemon.Server
                         EndPoint = endpoint,
                         TcpClient = client,
                         Start = DateTime.Now,
-                        Remove = RemoveClient,
                         Shell = factory.Create(),
                         Reader = new StreamReader(stream, Encoding.UTF8),
                         Writer = new WriterOutput(new StreamWriter(stream, Encoding.UTF8)),
                     };
+                    //ensure cleanup order
+                    disposer.Push(rt);
                     clients.Add(rt);
-                    runner.Run(rt.Loop);
-                    output.Output("Client {0} registered", endpoint);
+                    runner.Run(rt.ReadLoop);
+                    runner.Run(() => output.Output("Client {0} disconnected", endpoint));
+                    runner.Run(() => RemoveClient(rt));
                     disposer.Clear();
                 }
             });
@@ -108,7 +122,7 @@ namespace SharpDaemon.Server
             register.Run(() =>
             {
                 clients.Remove(rt);
-                Tools.Try(rt.Dispose, handler);
+                Tools.Try(rt.Dispose);
             });
         }
 
@@ -136,8 +150,6 @@ namespace SharpDaemon.Server
     public class ClientRt : Disposable
     {
         public Output Output;
-        public Action<ClientRt> Remove;
-        public Action<Exception> Handler;
         public TcpClient TcpClient;
         public IPEndPoint EndPoint;
         public WriterOutput Writer;
@@ -152,14 +164,7 @@ namespace SharpDaemon.Server
             Tools.Try(Runner.Dispose);
         }
 
-        public void Loop()
-        {
-            Tools.Try(Process, Handler);
-            Output.Output("Client {0} disconnected", EndPoint);
-            Remove(this);
-        }
-
-        public void Process()
+        public void ReadLoop()
         {
             var line = Reader.ReadLine();
             while (line != null)

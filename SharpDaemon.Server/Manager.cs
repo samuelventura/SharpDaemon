@@ -24,12 +24,11 @@ namespace SharpDaemon.Server
             dbpath = args.DatabasePath;
             controller = args.Controller;
             handler = args.ExceptionHandler;
-            using (var disposer = new Disposer(handler))
+            runner = new Runner(new Runner.Args
             {
-                runner = new Runner(new Runner.Args { ExceptionHandler = handler });
-                disposer.Push(runner);
-                disposer.Clear();
-            }
+                ExceptionHandler = handler,
+                ThreadName = "Manager",
+            });
         }
 
         protected override void Dispose(bool disposed)

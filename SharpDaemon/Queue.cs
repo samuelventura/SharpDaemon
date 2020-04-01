@@ -6,24 +6,26 @@ namespace SharpDaemon
 {
     public class LockedQueue<T>
     {
+        private readonly object locker = new object();
         private readonly Queue<T> queue = new Queue<T>();
 
         public void Push(T t)
         {
-            lock (queue)
+            lock (locker)
             {
                 queue.Enqueue(t);
-                Monitor.Pulse(queue);
+
+                Monitor.Pulse(locker);
             }
         }
 
         public T Pop(int toms, T d)
         {
-            lock (queue)
+            lock (locker)
             {
                 if (queue.Count == 0)
                 {
-                    Monitor.Wait(queue, toms);
+                    Monitor.Wait(locker, toms);
                 }
                 if (queue.Count > 0)
                 {

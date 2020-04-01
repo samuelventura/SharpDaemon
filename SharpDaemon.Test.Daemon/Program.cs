@@ -1,28 +1,49 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using SharpDaemon;
 
 namespace SharpDaemon.Test.Daemon
 {
-    public class Program
+    class CliArgs
+    {
+        public string Mode { get; set; }
+        public string Data { get; set; }
+        public int Delay { get; set; }
+    }
+
+    class Program
     {
         static void Main(string[] args)
         {
             AppDomain.CurrentDomain.UnhandledException += Tools.ExceptionHandler;
 
+            var cargs = new CliArgs();
+
             foreach (var arg in args)
             {
                 Logger.Debug("Arg {0}", arg);
+                Tools.SetProperty(cargs, arg);
             }
 
-            var cmd = string.Join(" ", args);
+            Process(cargs);
 
-            if (cmd.StartsWith("echo"))
-            {
-                Logger.Info(cmd.Substring("echo".Length).Trim());
-            }
+            var line = Console.ReadLine();
+            while (line != null) line = Console.ReadLine();
 
             Environment.Exit(0);
+        }
+
+        static void Process(CliArgs cargs)
+        {
+            switch (cargs.Mode)
+            {
+                case "Echo":
+                    Logger.Info(cargs.Data);
+                    Thread.Sleep(cargs.Delay);
+                    Environment.Exit(0);
+                    break;
+            }
         }
     }
 }

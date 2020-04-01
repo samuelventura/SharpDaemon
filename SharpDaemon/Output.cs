@@ -23,9 +23,22 @@ namespace SharpDaemon
             var dtt = Tools.Format(DateTime.Now);
             var text = Tools.Format(format, args);
 
+            var remove = new List<Output>();
             foreach (var output in outputs)
             {
-                Tools.Try(() => output.Output("{0} {1}", dtt, text));
+                Tools.Try(() => output.Output("{0} {1}", dtt, text), (ex) =>
+                {
+                    remove.Add(output);
+                });
+            }
+            foreach (var output in remove)
+            {
+                outputs.Remove(output);
+                if (output is IDisposable)
+                {
+                    var disposable = output as IDisposable;
+                    Tools.Try(disposable.Dispose);
+                }
             }
         }
     }
