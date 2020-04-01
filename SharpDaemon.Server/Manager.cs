@@ -1,4 +1,7 @@
 ﻿using System;
+using System.IO;
+using System.Net;
+using System.IO.Compression;
 
 namespace SharpDaemon.Server
 {
@@ -76,6 +79,27 @@ namespace SharpDaemon.Server
                         named.Output("{0} daemon(s)", dtos.Count);
                     }, named.OnException);
                 }
+                if (tokens.Length == 3 && tokens[1] == "install")
+                {
+                    if (Uri.TryCreate(tokens[2], UriKind.Absolute, out var uri))
+                    {
+                        var zipfile = Path.GetFileName(uri.LocalPath);
+                        var zipfilepath = Path.Combine(downloads, zipfile);
+                        var zipdir = Path.GetFileNameWithoutExtension(zipfile);
+                        var zipdirpath = Path.Combine(downloads, zipdir);
+                        if (Path.GetExtension(zipfile) == ".zip")
+                        {
+                            named.Output("Downloading {0}...", uri);
+                            using (var client = new WebClient()) client.DownloadFile(uri, zipfilepath);
+                            Directory.CreateDirectory(zipdirpath);
+                            ZipFile.ExtractToDirectory(zipfilepath, zipdirpath);
+                            var args = File.ReadAllText(Path.Combine(zipdirpath, "Arguments.txt")).Trim();
+                            var exefile = File.ReadAllText(Path.Combine(zipdirpath, "Main.txt")).Trim();
+                            var exepath = Path.Combine(zipdir, exefile); //relative
+                            Execute(output, "daemon", "install", zipfile, exepath, args);
+                        }
+                    }
+                }
                 if ((tokens.Length == 4 || tokens.Length == 5) && tokens[1] == "install")
                 {
                     runner.Run(() =>
@@ -87,7 +111,7 @@ namespace SharpDaemon.Server
                             Created = DateTime.Now,
                             Args = tokens.Length > 4 ? tokens[4] : string.Empty,
                         };
-                        named.Output("Installing... {0}|{1}|{2}|{3}", dto.Id, Tools.Format(dto.Created), dto.Path, dto.Args);
+                        named.Output("Daemon {0} installing... {1}|{2}|{3}", dto.Id, Tools.Format(dto.Created), dto.Path, dto.Args);
                         Database.Save(dbpath, dto);
                         controller.Execute(output, tokens);
                     }, named.OnException);
@@ -97,7 +121,7 @@ namespace SharpDaemon.Server
                     runner.Run(() =>
                     {
                         var id = tokens[2];
-                        named.Output("Uninstalling... {0}", id);
+                        named.Output("Daemon {0} uninstalling...", id);
                         Database.Remove(dbpath, id);
                         controller.Execute(output, tokens);
                     }, named.OnException);

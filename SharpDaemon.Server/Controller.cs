@@ -58,9 +58,9 @@ namespace SharpDaemon.Server
                             named.Output("Daemon {0} already installed", id);
                             return;
                         }
-                        named.Output("Daemon starting... {0}|{1}|{2}", dto.Id, dto.Path, dto.Args);
+                        named.Output("Daemon {0} starting... {1}|{2}", dto.Id, dto.Path, dto.Args);
                         var rt = DoStart(dto);
-                        named.Output("Daemon started {0} {1} {2}", rt.Dto.Id, rt.Process.Name, rt.Process.Id);
+                        named.Output("Daemon {0} started {1} {2}", rt.Dto.Id, rt.Process.Id, rt.Process.Name);
                     }, named.OnException);
                 }
                 if (tokens.Length == 3 && tokens[1] == "uninstall")
@@ -192,7 +192,7 @@ namespace SharpDaemon.Server
             var line = Process.ReadLine();
             while (line != null)
             {
-                Output.Output("{0} {1} < {2}", Dto.Id, Process.Id, line);
+                Output.Output("Daemon {0} {1} < {2}", Dto.Id, Process.Id, line);
                 Status = line.Split(new char[] { '\n' }, 2)[0];
                 if (line.StartsWith("!")) return;
                 line = Process.ReadLine();
