@@ -85,7 +85,7 @@ namespace SharpDaemon.Server
                     {
                         var zipfile = Path.GetFileName(uri.LocalPath);
                         var zipfilepath = Path.Combine(downloads, zipfile);
-                        var zipdir = Path.GetFileNameWithoutExtension(zipfile);
+                        var zipdir = zipfile.Replace(".", "_");
                         var zipdirpath = Path.Combine(downloads, zipdir);
                         if (Path.GetExtension(zipfile) == ".zip")
                         {
@@ -93,10 +93,10 @@ namespace SharpDaemon.Server
                             using (var client = new WebClient()) client.DownloadFile(uri, zipfilepath);
                             Directory.CreateDirectory(zipdirpath);
                             ZipFile.ExtractToDirectory(zipfilepath, zipdirpath);
-                            var args = File.ReadAllText(Path.Combine(zipdirpath, "Arguments.txt")).Trim();
+                            var exeargs = File.ReadAllText(Path.Combine(zipdirpath, "Arguments.txt")).Trim();
                             var exefile = File.ReadAllText(Path.Combine(zipdirpath, "Main.txt")).Trim();
                             var exepath = Path.Combine(zipdir, exefile); //relative
-                            Execute(output, "daemon", "install", zipfile, exepath, args);
+                            Execute(output, "daemon", "install", zipfile, exepath, exeargs);
                         }
                     }
                 }

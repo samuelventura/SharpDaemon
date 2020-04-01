@@ -35,6 +35,7 @@ namespace SharpDaemon.Test
             using (var zip = ZipFile.Open(zippath, ZipArchiveMode.Create))
             {
                 zip.CreateEntryFromFile(Tools.Relative("SharpDaemon.Test.Daemon.exe"), "SharpDaemon.Test.Daemon.exe");
+                zip.CreateEntryFromFile(Tools.Relative("SharpDaemon.dll"), "SharpDaemon.dll");
                 var main = zip.CreateEntry("Main.txt");
                 using (var writer = new StreamWriter(main.Open()))
                 {
@@ -46,12 +47,21 @@ namespace SharpDaemon.Test
                     writer.WriteLine("Mode=Echo Data=Hello Delay=200");
                 }
             }
-            var host = new NancyHost(new Bootstrapper() { Root = cargs.Ws }, new Uri($"http://127.0.0.1:9999"));
-            host.Start();
-            using (var instance = Launcher.Launch(outputs, cargs))
+            const string URI = "http://127.0.0.1:9999";
+            var host = new NancyHost(new Bootstrapper() { Root = cargs.Ws }, new Uri(URI));
+            using (var disposer = new Disposer())
             {
+                disposer.Push(host.Stop);
+                host.Start();
+                var instance = Launcher.Launch(outputs, cargs);
+                disposer.Push(instance);
                 var shell = instance.CreateShell();
-                //shell.Execute(outputs, "daemon", "install", @"http://127.0.0.1:9999/sample.zip");
+                shell.Execute(outputs, "daemon", "install", string.Format("{0}/sample.zip", URI));
+                testo.WaitFor(1000, "MANAGER Daemon sample.zip installing...");
+                testo.WaitFor(400, "CONTROLLER Daemon sample.zip starting...");
+                testo.WaitFor(400, "CONTROLLER Daemon sample.zip started \\d+ SharpDaemon.Test.Daemon");
+                testo.WaitFor(400, "CONTROLLER Daemon sample.zip \\d+ < Hello");
+                testo.WaitFor(1000, "CONTROLLER Daemon sample.zip restarting after \\d+ms");
                 shell.Execute(outputs, "daemon", "install", "sample", @"..\..\SharpDaemon.Test.Daemon.exe", "Mode=Echo Data=Hello Delay=200");
                 testo.WaitFor(400, "MANAGER Daemon sample installing...");
                 testo.WaitFor(400, "CONTROLLER Daemon sample starting...");
@@ -61,7 +71,7 @@ namespace SharpDaemon.Test
                 shell.Execute(outputs, "daemon", "uninstall", "sample");
                 testo.WaitFor(400, "MANAGER Daemon sample uninstalling...");
                 testo.WaitFor(400, "CONTROLLER Daemon sample stopped");
-                Thread.Sleep(200000);
+                Thread.Sleep(200);
             }
         }
 
