@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Reflection;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Collections.Generic;
 
 namespace SharpDaemon
@@ -18,6 +19,36 @@ namespace SharpDaemon
             return text;
         }
 
+        public static string Format(double totalSeconds)
+        {
+            var wholeSeconds = (long)Math.Floor(totalSeconds);
+            var partialSeconds = totalSeconds - wholeSeconds;
+            var hours = wholeSeconds / 3600;
+            var minutes = (wholeSeconds % 3600) / 60;
+            var seconds = wholeSeconds % 60 + partialSeconds;
+            var sb = new StringBuilder();
+            if (hours > 0) sb.AppendFormat("{0}h", hours);
+            if (minutes > 0) sb.AppendFormat("{0}m", minutes);
+            sb.AppendFormat("{0:0.0}s", seconds);
+            return sb.ToString();
+        }
+
+        public static void EntryFromString(this ZipArchive zip, string name, string text)
+        {
+            var entry = zip.CreateEntry(name);
+            using (var writer = new StreamWriter(entry.Open())) writer.Write(text);
+        }
+
+        public static string Absolute(string root, string path)
+        {
+            if (!Path.IsPathRooted(path))
+            {
+                var full = Path.Combine(root, path);
+                return Path.GetFullPath(full); //canonical
+            }
+            return path;
+        }
+
         public static void ExceptionHandler(object sender, UnhandledExceptionEventArgs args)
         {
             ExceptionHandler(args.ExceptionObject as Exception);
@@ -26,7 +57,7 @@ namespace SharpDaemon
         public static void ExceptionHandler(Exception ex)
         {
             Tools.Try(() => Tools.Dump(ex));
-            Tools.Try(() => Stdio.WriteLine("!{0}", ex.ToString()));
+            Tools.Try(() => Stdio.WriteLine("!{0}", ex.Message));
             Environment.Exit(1);
         }
 

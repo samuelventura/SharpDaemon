@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net40</TargetFramework>
+    <TargetFramework>net45</TargetFramework>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <PackageId>SharpDaemon</PackageId>
     <PackageVersion>1.0.1.0</PackageVersion>
@@ -11,5 +11,9 @@
     <Description>Windows Daemon Tools</Description>
     <License>https://www.apache.org/licenses/LICENSE-2.0</License>  
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Compression" Version="4.3.0" />
+  </ItemGroup>
 
 </Project>

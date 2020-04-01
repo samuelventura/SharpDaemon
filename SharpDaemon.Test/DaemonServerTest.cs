@@ -36,18 +36,11 @@ namespace SharpDaemon.Test
             {
                 zip.CreateEntryFromFile(Tools.Relative("SharpDaemon.Test.Daemon.exe"), "SharpDaemon.Test.Daemon.exe");
                 zip.CreateEntryFromFile(Tools.Relative("SharpDaemon.dll"), "SharpDaemon.dll");
-                var main = zip.CreateEntry("Main.txt");
-                using (var writer = new StreamWriter(main.Open()))
-                {
-                    writer.WriteLine("SharpDaemon.Test.Daemon.exe");
-                }
-                var args = zip.CreateEntry("Arguments.txt");
-                using (var writer = new StreamWriter(args.Open()))
-                {
-                    writer.WriteLine("Mode=Echo Data=Hello Delay=200");
-                }
+                zip.EntryFromString("Main.txt", "SharpDaemon.Test.Daemon.exe");
+                zip.EntryFromString("Arguments.txt", "Mode=Echo Data=Hello Delay=200");
             }
             const string URI = "http://127.0.0.1:9999";
+            var sampleURI = string.Format("{0}/sample.zip", URI);
             var host = new NancyHost(new Bootstrapper() { Root = cargs.Ws }, new Uri(URI));
             using (var disposer = new Disposer())
             {
@@ -56,21 +49,23 @@ namespace SharpDaemon.Test
                 var instance = Launcher.Launch(outputs, cargs);
                 disposer.Push(instance);
                 var shell = instance.CreateShell();
-                shell.Execute(outputs, "daemon", "install", string.Format("{0}/sample.zip", URI));
-                testo.WaitFor(1000, "MANAGER Daemon sample.zip installing...");
-                testo.WaitFor(400, "CONTROLLER Daemon sample.zip starting...");
-                testo.WaitFor(400, "CONTROLLER Daemon sample.zip started \\d+ SharpDaemon.Test.Daemon");
-                testo.WaitFor(400, "CONTROLLER Daemon sample.zip \\d+ < Hello");
+                shell.Execute(outputs, "daemon", "install", sampleURI);
+                testo.WaitFor(1000, "MANAGER Daemon sample.zip installing");
+                testo.WaitFor(400, "CONTROLLER Daemon sample.zip starting");
+                testo.WaitFor(400, "CONTROLLER Daemon sample.zip started SharpDaemon.Test.Daemon|\\d+");
+                testo.WaitFor(400, "CONTROLLER Daemon sample.zip SharpDaemon.Test.Daemon|\\d+ < Hello");
                 testo.WaitFor(1000, "CONTROLLER Daemon sample.zip restarting after \\d+ms");
+                testo.WaitFor(400, "CONTROLLER Daemon sample.zip restarted SharpDaemon.Test.Daemon|\\d+");
                 shell.Execute(outputs, "daemon", "install", "sample", @"..\..\SharpDaemon.Test.Daemon.exe", "Mode=Echo Data=Hello Delay=200");
-                testo.WaitFor(400, "MANAGER Daemon sample installing...");
-                testo.WaitFor(400, "CONTROLLER Daemon sample starting...");
-                testo.WaitFor(400, "CONTROLLER Daemon sample started \\d+ SharpDaemon.Test.Daemon");
-                testo.WaitFor(400, "CONTROLLER Daemon sample \\d+ < Hello");
+                testo.WaitFor(400, "MANAGER Daemon sample installing");
+                testo.WaitFor(400, "CONTROLLER Daemon sample starting");
+                testo.WaitFor(400, "CONTROLLER Daemon sample started SharpDaemon.Test.Daemon|\\d+");
+                testo.WaitFor(400, "CONTROLLER Daemon sample SharpDaemon.Test.Daemon|\\d+ < Hello");
                 testo.WaitFor(1000, "CONTROLLER Daemon sample restarting after \\d+ms");
+                testo.WaitFor(400, "CONTROLLER Daemon sample restarted SharpDaemon.Test.Daemon|\\d+");
                 shell.Execute(outputs, "daemon", "uninstall", "sample");
                 testo.WaitFor(400, "MANAGER Daemon sample uninstalling...");
-                testo.WaitFor(400, "CONTROLLER Daemon sample stopped");
+                testo.WaitFor(400, "CONTROLLER Daemon sample removed");
                 Thread.Sleep(200);
             }
         }
@@ -97,9 +92,10 @@ namespace SharpDaemon.Test
                 queue.Push(line);
             }
 
-            public void WaitFor(int toms, string pattern)
+            public void WaitFor(int toms, string format, params object[] args)
             {
                 var dl = DateTime.Now.AddMilliseconds(toms);
+                var pattern = Tools.Format(format, args);
                 while (true)
                 {
                     var line = queue.Pop(1, null);

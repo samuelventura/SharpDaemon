@@ -8,9 +8,11 @@ namespace SharpDaemon
 
         public static void WriteLine(string format, params object[] args)
         {
+            var text = Tools.Format(format, args).Replace('\n', '|');
+
             lock (locker)
             {
-                Console.WriteLine(format, args);
+                Console.WriteLine(text);
                 Console.Out.Flush();
             }
         }

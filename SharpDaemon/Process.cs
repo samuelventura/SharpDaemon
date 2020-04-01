@@ -3,21 +3,8 @@ using System.Diagnostics;
 
 namespace SharpDaemon
 {
-    public class ProcessException : Exception
-    {
-        private readonly string trace;
-
-        public ProcessException(string message, string trace) : base(message)
-        {
-            this.trace = trace;
-        }
-
-        public string Trace { get { return trace; } }
-    }
-
     public class DaemonProcess : Disposable
     {
-        private readonly Action<Exception> handler;
         private readonly Process process;
         private readonly DateTime start;
         private readonly int id;
@@ -27,12 +14,10 @@ namespace SharpDaemon
         {
             public string Executable { get; set; }
             public string Arguments { get; set; }
-            public Action<Exception> ExceptionHandler { get; set; }
         }
 
         public DaemonProcess(Args args)
         {
-            handler = args.ExceptionHandler;
             process = new Process();
             process.StartInfo = new ProcessStartInfo()
             {
@@ -68,13 +53,7 @@ namespace SharpDaemon
 
         public string ReadLine()
         {
-            var line = process.StandardOutput.ReadLine();
-            if (line != null && line.StartsWith("!"))
-            {
-                var trace = process.StandardOutput.ReadToEnd();
-                return string.Format("{0}\n{1}", line, trace);
-            }
-            return line;
+            return process.StandardOutput.ReadLine();
         }
 
         public void WriteLine(string format, params object[] args)
