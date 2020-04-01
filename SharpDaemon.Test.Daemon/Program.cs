@@ -22,7 +22,6 @@ namespace SharpDaemon.Test.Daemon
 
             foreach (var arg in args)
             {
-                Logger.Debug("Arg {0}", arg);
                 Tools.SetProperty(cargs, arg);
             }
 
@@ -39,7 +38,8 @@ namespace SharpDaemon.Test.Daemon
             switch (cargs.Mode)
             {
                 case "Echo":
-                    Logger.Info(cargs.Data);
+                    Thread.Sleep(cargs.Delay);
+                    Stdio.WriteLine(cargs.Data);
                     Thread.Sleep(cargs.Delay);
                     Environment.Exit(0);
                     break;

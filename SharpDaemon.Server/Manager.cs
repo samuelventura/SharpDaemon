@@ -59,6 +59,10 @@ namespace SharpDaemon.Server
             if (tokens[0] == "daemon")
             {
                 var named = new NamedOutput("MANAGER", output);
+                if (tokens.Length == 2 && tokens[1] == "status")
+                {
+                    controller.Execute(output, tokens);
+                }
                 if (tokens.Length == 2 && tokens[1] == "list")
                 {
                     runner.Run(() =>

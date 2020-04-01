@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 
 namespace SharpDaemon.Server
@@ -6,24 +7,24 @@ namespace SharpDaemon.Server
     public class Controller : Disposable, IScriptable
     {
         private readonly int delay;
-        private readonly Output output;
+        private readonly string root;
         private readonly Runner runner;
-        private readonly Action<DaemonLog> logger;
+        private readonly Output output;
         private readonly Action<Exception> handler;
         private readonly Dictionary<string, DaemonRT> daemons;
 
         public class Args
         {
+            public string Root { get; set; }
             public Output Output { get; set; }
             public int RestartDelay { get; set; }
-            public Action<DaemonLog> DaemonLogger { get; set; }
             public Action<Exception> ExceptionHandler { get; set; }
         }
 
         public Controller(Args args)
         {
+            root = args.Root;
             delay = args.RestartDelay;
-            logger = args.DaemonLogger;
             handler = args.ExceptionHandler;
             output = new NamedOutput("CONTROLLER", args.Output);
             daemons = new Dictionary<string, DaemonRT>();
@@ -77,6 +78,18 @@ namespace SharpDaemon.Server
                         named.Output("Daemon {0} stopped", id);
                     }, named.OnException);
                 }
+                if (tokens.Length == 2 && tokens[1] == "status")
+                {
+                    runner.Run(() =>
+                    {
+                        named.Output("Id|Pid|Name|Status");
+                        foreach (var rt in daemons.Values)
+                        {
+                            named.Output("{0}|{1}|{2}|{3}", rt.Dto.Id, rt.Process.Id, rt.Process.Name, rt.Status);
+                        }
+                        named.Output("{0} daemon(s)", daemons.Count);
+                    }, named.OnException);
+                }
             }
         }
 
@@ -96,6 +109,7 @@ namespace SharpDaemon.Server
             {
                 var id = rt.Dto.Id;
                 rt.Restart = DateTime.Now.AddMilliseconds(delay);
+                rt.Status = "Restarting...";
                 Tools.Try(rt.Dispose);
             });
         }
@@ -124,9 +138,11 @@ namespace SharpDaemon.Server
         {
             using (var disposer = new Disposer())
             {
+                var path = dto.Path; //fix paths relative to root (downloads)
+                if (!Path.IsPathRooted(path)) path = Path.GetFullPath(Path.Combine(root, path));
                 var process = new DaemonProcess(new DaemonProcess.Args
                 {
-                    Executable = dto.Path,
+                    Executable = path,
                     Arguments = dto.Args,
                     ExceptionHandler = handler,
                 });
@@ -140,9 +156,10 @@ namespace SharpDaemon.Server
                 var rt = new DaemonRT
                 {
                     Dto = dto,
-                    Logger = logger,
                     Process = process,
                     Runner = runner,
+                    Output = output,
+                    Status = "Starting...",
                 };
                 //ensure cleanup order
                 disposer.Push(rt);
@@ -158,10 +175,11 @@ namespace SharpDaemon.Server
     class DaemonRT : Disposable
     {
         public DaemonDto Dto;
-        public DateTime? Restart;
-        public Action<DaemonLog> Logger;
-        public DaemonProcess Process;
+        public Output Output;
         public Runner Runner;
+        public DateTime? Restart;
+        public DaemonProcess Process;
+        public volatile string Status;
 
         protected override void Dispose(bool disposed)
         {
@@ -172,30 +190,13 @@ namespace SharpDaemon.Server
         public void ReadLoop()
         {
             var line = Process.ReadLine();
-            while (!string.IsNullOrWhiteSpace(line))
+            while (line != null)
             {
-                if (line.StartsWith("#")) ParseAndLog(line);
+                Output.Output("{0} {1} < {2}", Dto.Id, Process.Id, line);
+                Status = line.Split(new char[] { '\n' }, 2)[0];
+                if (line.StartsWith("!")) return;
                 line = Process.ReadLine();
             }
         }
-
-        private void ParseAndLog(string line)
-        {
-            var log = new DaemonLog()
-            {
-                Id = Dto.Id,
-                Pid = Process.Id,
-                Name = Process.Name,
-            };
-            Log.Parse(log, line);
-            Logger(log);
-        }
-    }
-
-    public class DaemonLog : Log
-    {
-        public string Id { get; set; }
-        public int Pid { get; set; }
-        public string Name { get; set; }
     }
 }

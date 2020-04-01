@@ -72,7 +72,7 @@ namespace SharpDaemon
             if (line != null && line.StartsWith("!"))
             {
                 var trace = process.StandardOutput.ReadToEnd();
-                throw new ProcessException(line.Substring(1), trace);
+                return string.Format("{0}\n{1}", line, trace);
             }
             return line;
         }

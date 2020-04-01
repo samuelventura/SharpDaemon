@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SharpDaemon\SharpDaemon.csproj" />  
+    <ProjectReference Include="..\SharpDaemon.Test.Daemon\SharpDaemon.Test.Daemon.csproj"/>  
     <PackageReference Include="LiteDb" Version="5.0.5" />
   </ItemGroup>
 

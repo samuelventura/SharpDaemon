@@ -29,14 +29,11 @@ namespace SharpDaemon.Test
             {
                 var shell = instance.CreateShell();
                 shell.Execute(outputs, "daemon", "install", "sample",
-                    Tools.Relative("SharpDaemon.Test.Daemon.exe"), "Mode=Echo Data=Hello Delay=200");
+                    @"..\..\SharpDaemon.Test.Daemon.exe", "Mode=Echo Data=Hello Delay=200");
                 testo.WaitFor(400, "MANAGER Installing... sample");
                 testo.WaitFor(400, "CONTROLLER Daemon starting... sample");
                 testo.WaitFor(400, "CONTROLLER Daemon started sample SharpDaemon.Test.Daemon");
-                testo.WaitFor(400, "DAEMON Debug sample SharpDaemon.Test.Daemon \\d+ Arg Mode=Echo");
-                testo.WaitFor(400, "DAEMON Debug sample SharpDaemon.Test.Daemon \\d+ Arg Data=Hello");
-                testo.WaitFor(400, "DAEMON Debug sample SharpDaemon.Test.Daemon \\d+ Arg Delay=200");
-                testo.WaitFor(400, "DAEMON Info sample SharpDaemon.Test.Daemon \\d+ Hello");
+                testo.WaitFor(400, "CONTROLLER sample \\d+ < Hello");
                 testo.WaitFor(1000, "CONTROLLER Daemon sample restarting after \\d+ms");
                 shell.Execute(outputs, "daemon", "uninstall", "sample");
                 testo.WaitFor(400, "MANAGER Uninstalling... sample");

@@ -36,8 +36,8 @@ namespace SharpDaemon.Server
                 factory.Add(new SystemScriptable());
                 var controller = new Controller(new Controller.Args
                 {
+                    Root = args.Downloads,
                     ExceptionHandler = OnException,
-                    DaemonLogger = OnDaemonLog,
                     RestartDelay = args.RestartDelay,
                     Output = outputs,
                 });
@@ -78,13 +78,6 @@ namespace SharpDaemon.Server
         {
             Tools.Try(listener.Dispose);
             Tools.Try(manager.Dispose);
-        }
-
-        //called from many threads
-        private void OnDaemonLog(DaemonLog log)
-        {
-            outputs.Output("DAEMON {0} {1} {2} {3} {4}",
-                log.Level, log.Id, log.Name, log.Pid, log.Message);
         }
 
         //called from many threads

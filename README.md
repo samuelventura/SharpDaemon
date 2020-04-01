@@ -24,8 +24,11 @@ dotnet test SharpDaemon.Test
 #console output for test cases
 dotnet test SharpDaemon.Test -v n
 #run (ctrl+c to exit)
-dotnet run -p SharpDaemon.Server -- port=5667
+dotnet run -p SharpDaemon.Server -- port=5667 delay=2000
 dotnet run -p SharpDaemon.Server
+#install relative to downloads
+daemon uninstall sample
+daemon install sample ..\..\SharpDaemon.Test.Daemon.exe `Mode=Echo Data=Hello Delay=200`
 ```
 
 ## TODO
