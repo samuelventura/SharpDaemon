@@ -3,24 +3,12 @@ using System.IO;
 using System.Text;
 using System.Reflection;
 using System.Diagnostics;
-using System.Net.Sockets;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
 namespace SharpDaemon
 {
     public static class Tools
     {
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool SetHandleInformation(IntPtr hObject, uint dwMask, uint dwFlags);
-
-        public static void MakeNotInheritable(this TcpListener socket)
-        {
-            const uint HANDLE_FLAG_INHERIT = 1;
-            var handle = socket.Server.Handle;
-            SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
-        }
-
         public static string Compact(DateTime dt) => dt.ToString("yyyyMMdd_HHmmss_fff");
         public static string Format(DateTime dt) => dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
         public static string Format(string format, params object[] args)

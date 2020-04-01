@@ -39,8 +39,6 @@ namespace SharpDaemon.Server
             using (var disposer = new Disposer(handler))
             {
                 disposer.Push(server.Stop);
-                //daemons prevent stop from exiting accepter
-                server.MakeNotInheritable();
                 server.Start();
                 endpoint = server.LocalEndpoint as IPEndPoint;
                 register = new Runner(new Runner.Args
