@@ -1,8 +1,5 @@
 ﻿using System;
-using System.IO;
-using System.Net;
 using System.Diagnostics;
-using System.IO.Compression;
 
 namespace SharpDaemon.Server
 {
@@ -28,13 +25,13 @@ namespace SharpDaemon.Server
                 {
                     Execute(output, () => ExecuteKill(output, tokens));
                 }
-                if (tokens.Length == 3 && tokens[1] == "install")
+                if (tokens.Length == 4 && tokens[1] == "install")
                 {
-                    Execute(output, () => ExecuteInstall3(output, tokens));
+                    Execute(output, () => ExecuteInstall(output, tokens));
                 }
-                if ((tokens.Length == 4 || tokens.Length == 5) && tokens[1] == "install")
+                if (tokens.Length == 5 && tokens[1] == "install")
                 {
-                    Execute(output, () => ExecuteInstall45(output, tokens));
+                    Execute(output, () => ExecuteInstall(output, tokens));
                 }
             }
             if (tokens[0] == "help")
@@ -88,42 +85,18 @@ namespace SharpDaemon.Server
             }
         }
 
-        private void ExecuteInstall45(Output output, params string[] tokens)
+        private void ExecuteInstall(Output output, params string[] tokens)
         {
             var dto = new DaemonDto
             {
                 Id = tokens[2],
                 Path = tokens[3],
-                Args = tokens.Length > 4 ? tokens[4] : string.Empty,
+                Args = tokens.Length == 4 ? string.Empty : tokens[4],
             };
             output.WriteLine("Daemon {0} installing {1}...", dto.Id, dto.Info("Path|Args"));
             Database.Save(database, dto);
             output.WriteLine("Daemon {0} installed", dto.Id);
             ReloadDatabase();
-        }
-
-        private void ExecuteInstall3(Output output, params string[] tokens)
-        {
-            if (Uri.TryCreate(tokens[2], UriKind.Absolute, out var uri))
-            {
-                var zipfile = Path.GetFileName(uri.LocalPath);
-                var zipfilepath = Path.Combine(downloads, zipfile);
-                var zipdir = zipfile.Replace(".", "_");
-                var zipdirpath = Path.Combine(downloads, zipdir);
-                if (Path.GetExtension(zipfile) == ".zip")
-                {
-                    output.WriteLine("Downloading {0}...", uri);
-                    using (var client = new WebClient()) client.DownloadFile(uri, zipfilepath);
-                    Directory.CreateDirectory(zipdirpath);
-                    ZipFile.ExtractToDirectory(zipfilepath, zipdirpath);
-                    var lines = File.ReadAllText(Path.Combine(zipdirpath, "Main.txt")).Split(new char[] { '\n' }, 2);
-                    var exefile = lines[0].Trim(); //executable in first line
-                    var exeargs = string.Empty; //args in all the others
-                    if (lines.Length > 1) exeargs = lines[1].Replace('\n', ' ').Trim();
-                    var exepath = Path.Combine(zipdir, exefile); //relative
-                    ExecuteInstall45(output, "daemon", "install", zipfile, exepath, exeargs);
-                }
-            }
         }
 
         private void Execute(Output output, Action action) => runner.Run(action, output.OnException);

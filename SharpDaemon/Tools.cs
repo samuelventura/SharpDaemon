@@ -32,6 +32,21 @@ namespace SharpDaemon
             return sb.ToString();
         }
 
+        public static bool IsChild(string folder, string relative)
+        {
+            var root = Path.GetFullPath(folder);
+            var path = Path.GetFullPath(Path.Combine(root, relative));
+            //this properly handles \ at the end of path
+            var parent = new DirectoryInfo(path).Parent.FullName;
+            return parent.Contains(root);
+        }
+
+        public static string Combine(string folder, string relative)
+        {
+            var root = Path.GetFullPath(folder);
+            return Path.GetFullPath(Path.Combine(root, relative));
+        }
+
         public static void EntryFromString(this ZipArchive zip, string name, string text)
         {
             var entry = zip.CreateEntry(name);

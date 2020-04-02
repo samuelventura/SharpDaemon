@@ -51,12 +51,18 @@ namespace SharpDaemon.Server
         private void ExecuteList(Output output, params string[] tokens)
         {
             var path = tokens[2];
-
+            var root = Path.GetFullPath(path);
             var total = 0;
-            foreach (var file in Directory.GetFileSystemEntries(path))
+            foreach (var file in Directory.GetDirectories(path))
             {
-                total++;
-                output.WriteLine("{0}", file);
+                total++; //remove final \ as well
+                output.WriteLine("{0}", file.Substring(root.Length + 1));
+            }
+            foreach (var file in Directory.GetFiles(path))
+            {
+                total++; //remove final \ as well
+                var furi = new Uri(file);
+                output.WriteLine("{0}", file.Substring(root.Length + 1));
             }
             output.WriteLine("{0} total files", total);
         }

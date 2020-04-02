@@ -81,7 +81,7 @@ namespace SharpDaemon.Test
         {
             private readonly LockedQueue<string> queue = new LockedQueue<string>();
 
-            public void WriteLine(string format, params object[] args)
+            public override void WriteLine(string format, params object[] args)
             {
                 var line = Tools.Format(format, args);
                 queue.Push(line);
