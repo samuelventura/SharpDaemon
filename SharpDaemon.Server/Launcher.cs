@@ -13,16 +13,19 @@ namespace SharpDaemon.Server
             public string Ws;
         }
 
-        public static CliArgs ParseCli(Output output, string[] args)
+        public static CliArgs Default()
         {
-            var cargs = new CliArgs
+            return new Launcher.CliArgs
             {
-                Port = 0,
-                Delay = 0,
-                Ip = "127.0.0.1",
+                Port = 22333,
+                Delay = 5000,
+                Ip = "0.0.0.0",
                 Ws = Tools.Relative("Workspace"),
             };
+        }
 
+        public static CliArgs ParseCli(Output output, CliArgs cargs, params string[] args)
+        {
             foreach (var arg in args)
             {
                 output.WriteLine(arg);
@@ -54,7 +57,7 @@ namespace SharpDaemon.Server
 
             var dbpath = Path.Combine(args.Ws, "SharpDaemon.litedb");
             var logpath = Path.Combine(args.Ws, "SharpDaemon.log.txt");
-            var portpath = Path.Combine(args.Ws, "SharpDaemon.ep.txt");
+            var eppath = Path.Combine(args.Ws, "SharpDaemon.ep.txt");
             var downloads = Path.Combine(args.Ws, "Downloads");
 
             Directory.CreateDirectory(downloads);
@@ -64,8 +67,7 @@ namespace SharpDaemon.Server
                 //acts like mutex for the workspace
                 var writer = new StreamWriter(logpath, true);
                 disposer.Push(writer);
-                var fileout = new WriterOutput(writer);
-                outputs.Add(fileout);
+                outputs.Add(new WriterOutput(writer));
                 var instance = new Instance(new Instance.Args
                 {
                     DbPath = dbpath,
@@ -76,8 +78,8 @@ namespace SharpDaemon.Server
                     IpAddress = args.Ip,
                 });
                 disposer.Push(instance);
+                File.WriteAllText(eppath, instance.EndPoint.ToString());
                 named.WriteLine("Listening on {0}", instance.EndPoint);
-                File.WriteAllText(portpath, instance.EndPoint.ToString());
                 disposer.Clear();
                 return instance;
             }

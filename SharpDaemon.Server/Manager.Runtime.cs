@@ -43,11 +43,11 @@ namespace SharpDaemon.Server
                     });
                     disposer.Push(runner);
 
+                    disposer.Push(Dispose); //ensure cleanup order
+                    runner.Run(ReadLoop);
+                    runner.Run(UpdateRestart);
                     disposer.Clear();
                 }
-
-                runner.Run(ReadLoop);
-                runner.Run(UpdateRestart);
             }
 
             protected override void Dispose(bool disposed)
@@ -64,7 +64,7 @@ namespace SharpDaemon.Server
             public void UpdateRestart()
             {
                 status = "Restarting...";
-                restart = DateTime.Now.AddSeconds(delay);
+                restart = DateTime.Now.AddMilliseconds(delay);
             }
 
             public string Info(string format)

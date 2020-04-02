@@ -26,7 +26,7 @@ namespace SharpDaemon.Server
         {
             database = args.Database;
             downloads = args.Downloads;
-            delay = Math.Max(5, args.RestartDelay);
+            delay = Math.Max(100, args.RestartDelay);
             named = new NamedOutput("MANAGER", args.Output);
             starting = new Dictionary<string, DateTime>();
             running = new Dictionary<string, DaemonRT>();
@@ -91,7 +91,7 @@ namespace SharpDaemon.Server
                     var found = starting.TryGetValue(dto.Id, out var dt);
                     if (!found || DateTime.Now > dt)
                     {
-                        starting[dto.Id] = DateTime.Now.AddSeconds(delay);
+                        starting[dto.Id] = DateTime.Now.AddMilliseconds(delay);
                         runner.Run(() => StartDaemon(dto));
                     }
                 }

@@ -25,7 +25,7 @@ namespace SharpDaemon.Test
             outputs.Add(new StdOutput());
             var cargs = new Launcher.CliArgs
             {
-                Delay = 400,
+                Delay = 0, //gets 100ms minimum
                 Port = 0,
                 Ip = "127.0.0.1",
                 Ws = Tools.Relative("WS_{0}", Tools.Compact(DateTime.Now)),
@@ -36,7 +36,7 @@ namespace SharpDaemon.Test
             {
                 zip.CreateEntryFromFile(Tools.Relative("SharpDaemon.Test.Daemon.exe"), "SharpDaemon.Test.Daemon.exe");
                 zip.CreateEntryFromFile(Tools.Relative("SharpDaemon.dll"), "SharpDaemon.dll");
-                zip.EntryFromString("Main.txt", "SharpDaemon.Test.Daemon.exe\nMode=Echo\nData=Hello\nDelay=200");
+                zip.EntryFromString("Main.txt", "SharpDaemon.Test.Daemon.exe\nMsDelay=200");
             }
             const string URI = "http://127.0.0.1:9999";
             var sampleURI = string.Format("{0}/sample.zip", URI);
@@ -50,10 +50,6 @@ namespace SharpDaemon.Test
                 var shell = instance.CreateShell();
                 shell.Execute(outputs, "daemon", "install", sampleURI);
                 testo.WaitFor(1000, "MANAGER Daemon sample.zip installing");
-                testo.WaitFor(400, "CONTROLLER Daemon sample.zip starting");
-                testo.WaitFor(400, "CONTROLLER Daemon sample.zip started SharpDaemon.Test.Daemon|\\d+");
-                testo.WaitFor(400, "CONTROLLER Daemon sample.zip SharpDaemon.Test.Daemon|\\d+ < Hello");
-                testo.WaitFor(1000, "CONTROLLER Daemon sample.zip restarting after \\d+ms");
                 testo.WaitFor(400, "CONTROLLER Daemon sample.zip restarted SharpDaemon.Test.Daemon|\\d+");
                 shell.Execute(outputs, "daemon", "install", "sample", @"..\..\SharpDaemon.Test.Daemon.exe", "Mode=Echo Data=Hello Delay=200");
                 testo.WaitFor(400, "MANAGER Daemon sample installing");
@@ -85,7 +81,7 @@ namespace SharpDaemon.Test
         {
             private readonly LockedQueue<string> queue = new LockedQueue<string>();
 
-            public void Output(string format, params object[] args)
+            public void WriteLine(string format, params object[] args)
             {
                 var line = Tools.Format(format, args);
                 queue.Push(line);

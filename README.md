@@ -24,9 +24,12 @@ dotnet test SharpDaemon.Test
 #console output for test cases
 dotnet test SharpDaemon.Test -v n
 #run (ctrl+c to exit)
-dotnet run -p SharpDaemon.Server -- port=5667
-dotnet run -p SharpDaemon.Server
+#restart delay defaults to 5000ms
+#tcp port defaults to 22333
+#ip defaults to 0.0.0.0
+dotnet run -p SharpDaemon.Server -- port=12333
 #install relative to downloads
+#quote command tokens containing spaces with `
 daemon uninstall sample
 daemon install http://127.0.0.1:9999/sample.zip
 daemon install sample ..\..\SharpDaemon.Test.Daemon.exe DelayMs=5000

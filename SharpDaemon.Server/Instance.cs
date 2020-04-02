@@ -28,7 +28,7 @@ namespace SharpDaemon.Server
             {
                 named.WriteLine("DbPath {0}", args.DbPath);
                 named.WriteLine("Downloads {0}", args.Downloads);
-                named.WriteLine("RestartDelay {0}s", args.RestartDelay);
+                named.WriteLine("RestartDelay {0}ms", args.RestartDelay);
                 named.WriteLine("IpAddress {0}", args.IpAddress);
                 named.WriteLine("TcpPort {0}", args.TcpPort);
                 factory = new ShellFactory();
@@ -41,6 +41,7 @@ namespace SharpDaemon.Server
                     Output = named.Output,
                 });
                 disposer.Push(manager);
+                factory.Add(manager);
                 listener = new Listener(new Listener.Args
                 {
                     IpAddress = args.IpAddress,
@@ -49,10 +50,10 @@ namespace SharpDaemon.Server
                     Output = named.Output,
                 });
                 disposer.Push(listener);
-                endpoint = listener.EndPoint;
                 factory.Add(listener);
-                factory.Add(manager);
-                //fill factory before start
+                endpoint = listener.EndPoint;
+
+                disposer.Push(Dispose); //ensure cleanup order
                 listener.Start();
                 disposer.Clear();
             }

@@ -4,9 +4,10 @@ using System.Collections.Generic;
 
 namespace SharpDaemon
 {
-    public interface Output
+    public abstract class Output
     {
-        void WriteLine(string format, params object[] args);
+        public abstract void WriteLine(string format, params object[] args);
+        public void OnException(Exception ex) => WriteLine("{0}", ex.ToString());
     }
 
     public class Outputs : Output
@@ -18,7 +19,7 @@ namespace SharpDaemon
             outputs.Add(output);
         }
 
-        public void WriteLine(string format, params object[] args)
+        public override void WriteLine(string format, params object[] args)
         {
             var dtt = Tools.Format(DateTime.Now);
             var text = Tools.Format(format, args);
@@ -56,15 +57,10 @@ namespace SharpDaemon
             this.output = output;
         }
 
-        public void WriteLine(string format, params object[] args)
+        public override void WriteLine(string format, params object[] args)
         {
             var text = Tools.Format(format, args);
             output.WriteLine("{0} {1}", name, text);
-        }
-
-        public void OnException(Exception ex)
-        {
-            output.WriteLine("{0} {1}", name, ex.ToString());
         }
     }
 
@@ -72,7 +68,7 @@ namespace SharpDaemon
     {
         private readonly object locker = new object();
 
-        public void WriteLine(string format, params object[] args)
+        public override void WriteLine(string format, params object[] args)
         {
             lock (locker)
             {
@@ -97,7 +93,7 @@ namespace SharpDaemon
             Tools.Try(writer.Dispose);
         }
 
-        public void WriteLine(string format, params object[] args)
+        public override void WriteLine(string format, params object[] args)
         {
             lock (locker)
             {

@@ -20,7 +20,8 @@ namespace SharpDaemon.Service
             base.OnStart(args);
 
             var outputs = new Outputs();
-            var cargs = Launcher.ParseCli(outputs, args);
+            var cargs = Launcher.Default();
+            Launcher.ParseCli(outputs, cargs, args);
             instance = Launcher.Launch(outputs, cargs);
         }
 

@@ -12,32 +12,39 @@ namespace SharpDaemon.Server
         {
             if (tokens[0] == "daemon")
             {
-                var named = new NamedOutput("MANAGER", output);
-
                 if (tokens.Length == 3 && tokens[1] == "list" && tokens[2] == "installed")
                 {
-                    Execute(named, () => ExecuteListInstalled(named, tokens));
+                    Execute(output, () => ExecuteListInstalled(output, tokens));
                 }
                 if (tokens.Length == 3 && tokens[1] == "list" && tokens[2] == "running")
                 {
-                    Execute(named, () => ExecuteListRunning(named, tokens));
+                    Execute(output, () => ExecuteListRunning(output, tokens));
                 }
                 if (tokens.Length == 3 && tokens[1] == "uninstall")
                 {
-                    Execute(named, () => ExecuteUninstall(named, tokens));
+                    Execute(output, () => ExecuteUninstall(output, tokens));
                 }
                 if (tokens.Length == 3 && tokens[1] == "kill")
                 {
-                    Execute(named, () => ExecuteKill(named, tokens));
+                    Execute(output, () => ExecuteKill(output, tokens));
                 }
                 if (tokens.Length == 3 && tokens[1] == "install")
                 {
-                    Execute(named, () => ExecuteInstall3(named, tokens));
+                    Execute(output, () => ExecuteInstall3(output, tokens));
                 }
                 if ((tokens.Length == 4 || tokens.Length == 5) && tokens[1] == "install")
                 {
-                    Execute(named, () => ExecuteInstall45(named, tokens));
+                    Execute(output, () => ExecuteInstall45(output, tokens));
                 }
+            }
+            if (tokens[0] == "help")
+            {
+                output.WriteLine("daemon list installed");
+                output.WriteLine("daemon list running");
+                output.WriteLine("daemon install <id> <exe-path> <optiona-args>");
+                output.WriteLine(" sample : daemon install adder sample/add.exe `1 2 3`");
+                output.WriteLine("daemon uninstall <id>");
+                output.WriteLine("daemon kill <id>");
             }
         }
 
@@ -74,7 +81,11 @@ namespace SharpDaemon.Server
         {
             var id = tokens[2];
             running.TryGetValue(id, out var rt);
-            if (rt != null) Process.GetProcessById(rt.Pid).Kill();
+            if (rt != null)
+            {
+                Process.GetProcessById(rt.Pid).Kill();
+                output.WriteLine("Daemon {0} killed", id);
+            }
         }
 
         private void ExecuteInstall45(Output output, params string[] tokens)
@@ -115,6 +126,6 @@ namespace SharpDaemon.Server
             }
         }
 
-        private void Execute(NamedOutput named, Action action) => runner.Run(action, named.OnException);
+        private void Execute(Output output, Action action) => runner.Run(action, output.OnException);
     }
 }

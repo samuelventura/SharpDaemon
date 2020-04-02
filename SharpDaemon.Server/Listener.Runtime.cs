@@ -43,6 +43,8 @@ namespace SharpDaemon.Server
                         ThreadName = name,
                     });
                     disposer.Push(runner);
+
+                    disposer.Push(Dispose); //ensure cleanup order
                     runner.Run(ReadLoop);
                     disposer.Clear();
                 }

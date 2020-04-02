@@ -14,7 +14,9 @@ namespace SharpDaemon.Server
 
             var named = new NamedOutput("PROGRAM", outputs);
 
-            var cargs = Launcher.ParseCli(outputs, args);
+            var cargs = Launcher.Default();
+
+            Launcher.ParseCli(outputs, cargs, args);
 
             using (var instance = Launcher.Launch(outputs, cargs))
             {

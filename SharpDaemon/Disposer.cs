@@ -19,13 +19,22 @@ namespace SharpDaemon
             public override string ToString() => $"${Id}:${Name}";
         }
 
+        private static readonly LockedSet<object> undisposed = new LockedSet<object>();
+        public static int Undisposed { get { return undisposed.Count; } }
         private readonly ThreadInfo thread = new ThreadInfo();
         private readonly object locker = new object();
         private volatile bool disposed;
 
         public bool Disposed { get { return disposed; } }
 
-        public Disposable() => Counter.Plus(this);
+        public Disposable()
+        {
+            lock (locker)
+            {
+                undisposed.Add(this);
+                Counter.Plus(this);
+            }
+        }
 
         public void Dispose()
         {
@@ -38,6 +47,8 @@ namespace SharpDaemon
                     Tools.Try(() => Dispose(disposed));
                     Counter.Minus(this);
                     disposed = true;
+                    var found = undisposed.Remove(this);
+                    Tools.Assert(found, "Disposable not found in undisposed");
                 }
             }
         }

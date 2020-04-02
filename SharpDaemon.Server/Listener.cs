@@ -7,7 +7,7 @@ namespace SharpDaemon.Server
 {
     public partial class Listener : Disposable
     {
-        private readonly HashSet<ClientRt> clients;
+        private readonly Dictionary<string, ClientRt> clients;
         private readonly ShellFactory factory;
         private readonly NamedOutput named;
         private readonly IPEndPoint endpoint;
@@ -28,7 +28,7 @@ namespace SharpDaemon.Server
         public Listener(Args args)
         {
             factory = args.ShellFactory;
-            clients = new HashSet<ClientRt>();
+            clients = new Dictionary<string, ClientRt>();
             named = new NamedOutput("LISTENER", args.Output);
             server = new TcpListener(IPAddress.Parse(args.IpAddress), args.TcpPort);
             using (var disposer = new Disposer())
@@ -46,7 +46,8 @@ namespace SharpDaemon.Server
                     ThreadName = "Accepter",
                 });
                 disposer.Push(accepter);
-                disposer.Push(server.Stop);
+
+                disposer.Push(Dispose); //ensure cleanup order
                 server.Start();
                 endpoint = server.LocalEndpoint as IPEndPoint;
                 disposer.Clear();
@@ -64,7 +65,7 @@ namespace SharpDaemon.Server
             accepter.Dispose();
             register.Dispose(() =>
             {
-                foreach (var rt in clients) Tools.Try(rt.Dispose);
+                foreach (var rt in clients.Values) rt.Dispose();
                 clients.Clear();
             });
         }
@@ -80,8 +81,9 @@ namespace SharpDaemon.Server
                     {
                         disposer.Push(client);
                         var rt = new ClientRt(client, named.Output, factory);
-                        disposer.Push(rt); //ensure cleanup order
-                        clients.Add(rt);
+
+                        disposer.Push(rt.Dispose); //ensure cleanup order
+                        clients.Add(rt.EndPoint.ToString(), rt);
                         rt.Run(() => RemoveClient(rt));
                         named.WriteLine("Client {0} connected", rt.EndPoint);
                         disposer.Clear();
@@ -95,7 +97,7 @@ namespace SharpDaemon.Server
             register.Run(() =>
             {
                 named.WriteLine("Client {0} disconnected", rt.EndPoint);
-                clients.Remove(rt);
+                clients.Remove(rt.EndPoint.ToString());
                 rt.Dispose();
             });
         }

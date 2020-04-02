@@ -20,6 +20,8 @@ namespace SharpDaemon.Test.Daemon
                 Tools.SetProperty(cargs, arg);
             }
 
+            Updater();
+
             using (var runner = new Runner(new Runner.Args
             {
                 IdleAction = Updater,
