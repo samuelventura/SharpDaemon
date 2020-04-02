@@ -29,7 +29,7 @@ namespace SharpDaemon.Server
             {
                 named.Output("DbPath {0}", args.DbPath);
                 named.Output("Downloads {0}", args.Downloads);
-                named.Output("RestartDelay {0}", args.RestartDelay);
+                named.Output("RestartDelay {0}ms", args.RestartDelay);
                 named.Output("IpAddress {0}", args.IpAddress);
                 named.Output("TcpPort {0}", args.TcpPort);
                 factory = new ShellFactory();

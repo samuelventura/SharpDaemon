@@ -36,8 +36,7 @@ namespace SharpDaemon.Test
             {
                 zip.CreateEntryFromFile(Tools.Relative("SharpDaemon.Test.Daemon.exe"), "SharpDaemon.Test.Daemon.exe");
                 zip.CreateEntryFromFile(Tools.Relative("SharpDaemon.dll"), "SharpDaemon.dll");
-                zip.EntryFromString("Main.txt", "SharpDaemon.Test.Daemon.exe");
-                zip.EntryFromString("Arguments.txt", "Mode=Echo Data=Hello Delay=200");
+                zip.EntryFromString("Main.txt", "SharpDaemon.Test.Daemon.exe\nMode=Echo\nData=Hello\nDelay=200");
             }
             const string URI = "http://127.0.0.1:9999";
             var sampleURI = string.Format("{0}/sample.zip", URI);

@@ -94,8 +94,10 @@ namespace SharpDaemon.Server
                     using (var client = new WebClient()) client.DownloadFile(uri, zipfilepath);
                     Directory.CreateDirectory(zipdirpath);
                     ZipFile.ExtractToDirectory(zipfilepath, zipdirpath);
-                    var exeargs = File.ReadAllText(Path.Combine(zipdirpath, "Arguments.txt")).Trim();
-                    var exefile = File.ReadAllText(Path.Combine(zipdirpath, "Main.txt")).Trim();
+                    var lines = File.ReadAllText(Path.Combine(zipdirpath, "Main.txt")).Split(new char[] { '\n' }, 2);
+                    var exefile = lines[0].Trim(); //executable in first line
+                    var exeargs = string.Empty; //args in all the others
+                    if (lines.Length > 1) exeargs = lines[1].Replace('\n', ' ').Trim();
                     var exepath = Path.Combine(zipdir, exefile); //relative
                     Execute(output, "daemon", "install", zipfile, exepath, exeargs);
                 }
