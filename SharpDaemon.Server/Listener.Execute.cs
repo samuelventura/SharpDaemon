@@ -9,6 +9,7 @@ namespace SharpDaemon.Server
             if (tokens[0] == "client")
             {
                 var named = new NamedOutput("LISTENER", output);
+
                 if (tokens.Length == 2 && tokens[1] == "list")
                 {
                     Execute(named, () => ExecuteList(output, named, tokens));
@@ -18,12 +19,12 @@ namespace SharpDaemon.Server
 
         private void ExecuteList(Output output, NamedOutput named, params string[] tokens)
         {
-            named.Output("Endpoint|Start|Idle");
+            named.WriteLine("Endpoint|Start|Idle");
             foreach (var rt in clients)
             {
-                named.Output(rt.Info());
+                named.WriteLine(rt.Info("Endpoint|Start|Idle"));
             }
-            named.Output("{0} client(s)", clients.Count);
+            named.WriteLine("{0} client(s) connected", clients.Count);
         }
 
         private void Execute(NamedOutput named, Action action) => register.Run(action, named.OnException);

@@ -9,7 +9,7 @@ namespace SharpDaemon.Server
         private readonly IPEndPoint endpoint;
         private readonly Listener listener;
         private readonly Manager manager;
-        private readonly Outputs outputs;
+        private readonly NamedOutput named;
 
         public class Args
         {
@@ -18,47 +18,35 @@ namespace SharpDaemon.Server
             public int TcpPort { get; set; }
             public string DbPath { get; set; }
             public string Downloads { get; set; }
-            public Outputs Outputs { get; set; }
+            public Output Output { get; set; }
         }
 
         public Instance(Args args)
         {
-            outputs = args.Outputs;
-            var named = new NamedOutput("INSTANCE", outputs);
+            named = new NamedOutput("LISTENER", args.Output);
             using (var disposer = new Disposer())
             {
-                named.Output("DbPath {0}", args.DbPath);
-                named.Output("Downloads {0}", args.Downloads);
-                named.Output("RestartDelay {0}ms", args.RestartDelay);
-                named.Output("IpAddress {0}", args.IpAddress);
-                named.Output("TcpPort {0}", args.TcpPort);
+                named.WriteLine("DbPath {0}", args.DbPath);
+                named.WriteLine("Downloads {0}", args.Downloads);
+                named.WriteLine("RestartDelay {0}s", args.RestartDelay);
+                named.WriteLine("IpAddress {0}", args.IpAddress);
+                named.WriteLine("TcpPort {0}", args.TcpPort);
                 factory = new ShellFactory();
                 factory.Add(new SystemScriptable());
-                var controller = new Controller(new Controller.Args
-                {
-                    Root = args.Downloads,
-                    ExceptionHandler = OnException,
-                    RestartDelay = args.RestartDelay,
-                    Output = outputs,
-                });
-                disposer.Push(controller);
                 manager = new Manager(new Manager.Args
                 {
-                    ExceptionHandler = OnException,
-                    DatabasePath = args.DbPath,
+                    RestartDelay = args.RestartDelay,
                     Downloads = args.Downloads,
-                    Controller = controller,
+                    Database = args.DbPath,
+                    Output = named.Output,
                 });
                 disposer.Push(manager);
-                //load from database
-                manager.Start(outputs);
                 listener = new Listener(new Listener.Args
                 {
-                    ExceptionHandler = OnException,
                     IpAddress = args.IpAddress,
                     ShellFactory = factory,
                     TcpPort = args.TcpPort,
-                    Output = outputs,
+                    Output = named.Output,
                 });
                 disposer.Push(listener);
                 endpoint = listener.EndPoint;
@@ -76,15 +64,8 @@ namespace SharpDaemon.Server
 
         protected override void Dispose(bool disposed)
         {
-            Tools.Try(listener.Dispose);
-            Tools.Try(manager.Dispose);
-        }
-
-        //called from many threads
-        private void OnException(Exception ex)
-        {
-            Tools.Try(() => Tools.Dump(ex));
-            outputs.Output("UNHANDLED {0}", ex.ToString());
+            listener.Dispose();
+            manager.Dispose();
         }
     }
 }

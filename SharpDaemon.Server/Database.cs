@@ -4,6 +4,38 @@ using LiteDB;
 
 namespace SharpDaemon.Server
 {
+    public class DaemonDto
+    {
+        public string Id { get; set; }
+        public string Path { get; set; }
+        public string Args { get; set; }
+
+        public DaemonDto Clone()
+        {
+            return new DaemonDto
+            {
+                Id = this.Id,
+                Path = this.Path,
+                Args = this.Args,
+            };
+        }
+
+        public string Info(string format)
+        {
+            var parts = format.Split('|');
+            for (var i = 0; i < parts.Length; i++)
+            {
+                switch (parts[i])
+                {
+                    case "Id": parts[i] = Id; break;
+                    case "Path": parts[i] = Path; break;
+                    case "Args": parts[i] = Args; break;
+                }
+            }
+            return string.Join("|", parts);
+        }
+    }
+
     public static class Database
     {
         public static void Save(string path, DaemonDto dto)
@@ -31,23 +63,6 @@ namespace SharpDaemon.Server
                 var table = db.GetCollection<DaemonDto>("daemons");
                 return new List<DaemonDto>(table.FindAll());
             }
-        }
-    }
-
-    public class DaemonDto
-    {
-        public string Id { get; set; }
-        public string Path { get; set; }
-        public string Args { get; set; }
-
-        public DaemonDto Clone()
-        {
-            return new DaemonDto
-            {
-                Id = this.Id,
-                Path = this.Path,
-                Args = this.Args,
-            };
         }
     }
 }

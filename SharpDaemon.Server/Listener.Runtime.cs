@@ -10,7 +10,7 @@ namespace SharpDaemon.Server
     {
         class ClientRt : Disposable
         {
-            private Output output;
+            private NamedOutput named;
             private TcpClient client;
             private IPEndPoint endpoint;
             private WriterOutput writer;
@@ -22,24 +22,25 @@ namespace SharpDaemon.Server
 
             public IPEndPoint EndPoint { get { return endpoint; } }
 
-            public ClientRt(TcpClient client, Output output, ShellFactory factory, Action<Exception> handler)
+            public ClientRt(TcpClient client, Output output, ShellFactory factory)
             {
-                //client disposed in caller
+                //client disposed in caller on throw
+                this.client = client;
                 using (var disposer = new Disposer())
                 {
-                    this.output = output;
-                    this.client = client;
                     start = DateTime.Now;
                     last = DateTime.Now;
                     shell = factory.Create();
                     var stream = client.GetStream();
-                    reader = new StreamReader(stream, Encoding.UTF8);
-                    writer = new WriterOutput(new StreamWriter(stream, Encoding.UTF8));
+                    reader = new StreamReader(stream);
+                    writer = new WriterOutput(new StreamWriter(stream));
                     endpoint = client.Client.RemoteEndPoint as IPEndPoint;
+                    var name = string.Format("Client_{0}", endpoint);
+                    named = new NamedOutput(name, output);
                     runner = new Runner(new Runner.Args
                     {
-                        ExceptionHandler = handler,
-                        ThreadName = string.Format("Client_{0}", endpoint),
+                        ExceptionHandler = named.OnException,
+                        ThreadName = name,
                     });
                     disposer.Push(runner);
                     runner.Run(ReadLoop);
@@ -50,13 +51,27 @@ namespace SharpDaemon.Server
             protected override void Dispose(bool disposed)
             {
                 Tools.Try(client.Close);
-                Tools.Try(runner.Dispose);
+                runner.Dispose();
             }
 
             public void Run(Action action) => runner.Run(action);
 
-            public string Info() => string.Format("{0}|{1}|{2}", endpoint, Tools.Format(start), IdleTime());
-
+            public string Info(string format)
+            {
+                var parts = format.Split('|');
+                for (var i = 0; i < parts.Length; i++)
+                {
+                    switch (parts[i])
+                    {
+                        case "IP": parts[i] = endpoint.Address.ToString(); break;
+                        case "Port": parts[i] = endpoint.Port.ToString(); break;
+                        case "Endpoint": parts[i] = endpoint.ToString(); break;
+                        case "Start": parts[i] = Tools.Format(start); break;
+                        case "Idle": parts[i] = IdleTime(); break;
+                    }
+                }
+                return string.Join("|", parts);
+            }
             private string IdleTime()
             {
                 var idle = DateTime.Now - last;
@@ -69,7 +84,7 @@ namespace SharpDaemon.Server
                 while (line != null)
                 {
                     last = DateTime.Now;
-                    output.Output("Client {0} < {1}", endpoint, line);
+                    named.WriteLine("< {0}", line);
                     var tokens = Tools.Tokens(line, writer);
                     if (tokens != null && tokens.Length > 0) shell.Execute(writer, tokens);
                     line = reader.ReadLine();

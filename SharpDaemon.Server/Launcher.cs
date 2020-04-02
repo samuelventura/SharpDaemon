@@ -25,7 +25,7 @@ namespace SharpDaemon.Server
 
             foreach (var arg in args)
             {
-                output.Output(arg);
+                output.WriteLine(arg);
 
                 if (arg.StartsWith("delay="))
                 {
@@ -71,12 +71,12 @@ namespace SharpDaemon.Server
                     DbPath = dbpath,
                     RestartDelay = args.Delay,
                     Downloads = downloads,
-                    Outputs = outputs,
+                    Output = outputs,
                     TcpPort = args.Port,
                     IpAddress = args.Ip,
                 });
                 disposer.Push(instance);
-                named.Output("Listening on {0}", instance.EndPoint);
+                named.WriteLine("Listening on {0}", instance.EndPoint);
                 File.WriteAllText(portpath, instance.EndPoint.ToString());
                 disposer.Clear();
                 return instance;

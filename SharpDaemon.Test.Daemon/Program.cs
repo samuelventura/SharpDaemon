@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Threading;
 
 namespace SharpDaemon.Test.Daemon
 {
     class CliArgs
     {
-        public string Mode { get; set; }
-        public string Data { get; set; }
-        public int Delay { get; set; }
+        public int DelayMs { get; set; }
     }
 
     class Program
@@ -23,25 +20,23 @@ namespace SharpDaemon.Test.Daemon
                 Tools.SetProperty(cargs, arg);
             }
 
-            Process(cargs);
-
-            var line = Console.ReadLine();
-            while (line != null) line = Console.ReadLine();
+            using (var runner = new Runner(new Runner.Args
+            {
+                IdleAction = Updater,
+                IdleMsDelay = Math.Max(100, cargs.DelayMs),
+                ExceptionHandler = Tools.ExceptionHandler,
+            }))
+            {
+                var line = Console.ReadLine();
+                while (line != null) line = Console.ReadLine();
+            }
 
             Environment.Exit(0);
         }
 
-        static void Process(CliArgs cargs)
+        static void Updater()
         {
-            switch (cargs.Mode)
-            {
-                case "Echo":
-                    Thread.Sleep(cargs.Delay);
-                    Stdio.WriteLine(cargs.Data);
-                    Thread.Sleep(cargs.Delay);
-                    Environment.Exit(0);
-                    break;
-            }
+            Stdio.WriteLine("Ticks_{0}", DateTime.Now.Ticks);
         }
     }
 }

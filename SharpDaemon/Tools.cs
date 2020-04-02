@@ -14,9 +14,8 @@ namespace SharpDaemon
         public static string Format(DateTime dt) => dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
         public static string Format(string format, params object[] args)
         {
-            var text = format;
-            if (args.Length > 0) text = string.Format(format, args);
-            return text;
+            if (args.Length > 0) return string.Format(format, args);
+            return format;
         }
 
         public static string Format(double totalSeconds)
@@ -154,7 +153,7 @@ namespace SharpDaemon
                     }
                     else
                     {
-                        output.Output("Error : unclosed quote {0}", quote);
+                        output.WriteLine("Error : unclosed quote {0}", quote);
                         return null;
                     }
                 }

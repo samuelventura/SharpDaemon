@@ -18,7 +18,7 @@ namespace SharpDaemon.Server
 
             using (var instance = Launcher.Launch(outputs, cargs))
             {
-                named.Output("ReadLine loop...");
+                named.WriteLine("ReadLine loop...");
                 var shell = instance.CreateShell();
                 var line = Console.ReadLine();
                 while (line != null)
@@ -27,7 +27,7 @@ namespace SharpDaemon.Server
                     if (tokens != null && tokens.Length > 0) shell.Execute(stdout, tokens);
                     line = Console.ReadLine();
                 }
-                named.Output("Stdin closed");
+                named.WriteLine("Stdin closed");
             }
 
             Environment.Exit(0);

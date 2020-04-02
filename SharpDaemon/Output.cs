@@ -6,7 +6,7 @@ namespace SharpDaemon
 {
     public interface Output
     {
-        void Output(string format, params object[] args);
+        void WriteLine(string format, params object[] args);
     }
 
     public class Outputs : Output
@@ -18,7 +18,7 @@ namespace SharpDaemon
             outputs.Add(output);
         }
 
-        public void Output(string format, params object[] args)
+        public void WriteLine(string format, params object[] args)
         {
             var dtt = Tools.Format(DateTime.Now);
             var text = Tools.Format(format, args);
@@ -26,7 +26,7 @@ namespace SharpDaemon
             var remove = new List<Output>();
             foreach (var output in outputs)
             {
-                Tools.Try(() => output.Output("{0} {1}", dtt, text), (ex) =>
+                Tools.Try(() => output.WriteLine("{0} {1}", dtt, text), (ex) =>
                 {
                     remove.Add(output);
                 });
@@ -48,21 +48,23 @@ namespace SharpDaemon
         private readonly Output output;
         private readonly string name;
 
+        public Output Output { get { return output; } }
+
         public NamedOutput(string name, Output output)
         {
             this.name = name;
             this.output = output;
         }
 
-        public void Output(string format, params object[] args)
+        public void WriteLine(string format, params object[] args)
         {
             var text = Tools.Format(format, args);
-            output.Output("{0} {1}", name, text);
+            output.WriteLine("{0} {1}", name, text);
         }
 
         public void OnException(Exception ex)
         {
-            output.Output("{0} {1}", name, ex.ToString());
+            output.WriteLine("{0} {1}", name, ex.ToString());
         }
     }
 
@@ -70,7 +72,7 @@ namespace SharpDaemon
     {
         private readonly object locker = new object();
 
-        public void Output(string format, params object[] args)
+        public void WriteLine(string format, params object[] args)
         {
             lock (locker)
             {
@@ -95,7 +97,7 @@ namespace SharpDaemon
             Tools.Try(writer.Dispose);
         }
 
-        public void Output(string format, params object[] args)
+        public void WriteLine(string format, params object[] args)
         {
             lock (locker)
             {

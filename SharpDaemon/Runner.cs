@@ -8,7 +8,7 @@ namespace SharpDaemon
         public class Args
         {
             public string ThreadName;
-            public int IdleDelay;
+            public int IdleMsDelay;
             public Action IdleAction;
             public Action<Exception> ExceptionHandler;
         }
@@ -25,7 +25,7 @@ namespace SharpDaemon
             args = args ?? new Args();
             this.handler = args.ExceptionHandler;
             this.idle = args.IdleAction;
-            this.delay = Math.Max(0, args.IdleDelay);
+            this.delay = Math.Max(0, args.IdleMsDelay);
             if (this.idle == null) this.delay = -1;
 
             queue = new LockedQueue<Action>();

@@ -24,7 +24,7 @@ namespace SharpDaemon.Server
             {
                 Tools.Try(
                     () => script.Execute(output, list.ToArray()),
-                    (ex) => output.Output(ex.ToString())
+                    (ex) => output.WriteLine(ex.ToString())
                 );
             }
         }

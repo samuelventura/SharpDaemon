@@ -1,21 +1,38 @@
 using System;
+using System.Threading;
 using System.Collections.Generic;
 
 namespace SharpDaemon
 {
     public abstract class Disposable : IDisposable
     {
+        class ThreadInfo
+        {
+            public readonly int Id;
+            public readonly string Name;
+            public ThreadInfo()
+            {
+                var thread = Thread.CurrentThread;
+                Id = thread.ManagedThreadId;
+                Name = thread.Name;
+            }
+            public override string ToString() => $"${Id}:${Name}";
+        }
+
+        private readonly ThreadInfo thread = new ThreadInfo();
         private readonly object locker = new object();
         private volatile bool disposed;
 
         public bool Disposed { get { return disposed; } }
 
-        public Disposable() { Counter.Plus(this); }
+        public Disposable() => Counter.Plus(this);
 
         public void Dispose()
         {
             lock (locker)
             {
+                var t = new ThreadInfo();
+                Tools.Assert(t.Id == thread.Id, "Thread mismatch d:{0} != c:{1}", t, thread);
                 if (!disposed)
                 {
                     Tools.Try(() => Dispose(disposed));
