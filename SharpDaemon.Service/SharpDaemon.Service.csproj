@@ -14,6 +14,8 @@
     <ProjectReference Include="..\SharpDaemon\SharpDaemon.csproj"/>  
     <ProjectReference Include="..\SharpDaemon.Server\SharpDaemon.Server.csproj"/>  
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.7.0" />
+    <Content Include="..\PostInstall.bat" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\PreUninstall.bat" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

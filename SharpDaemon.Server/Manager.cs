@@ -36,7 +36,7 @@ namespace SharpDaemon.Server
                 ExceptionHandler = named.OnException,
                 ThreadName = "Manager",
                 IdleAction = IdleLoop,
-                IdleMsDelay = 1,
+                IdleMsDelay = 10,
             });
             runner.Run(ReloadDatabase);
         }

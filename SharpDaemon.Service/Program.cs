@@ -6,7 +6,8 @@ namespace SharpDaemon.Service
 {
     class Program : ServiceBase
     {
-        public static readonly string NAME = "DaemonManager";
+        //name seems to be taken from `sc create SERVICENAME` command
+        public static readonly string NAME = "Daemon Manager";
 
         private Instance instance;
 

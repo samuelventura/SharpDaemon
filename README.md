@@ -38,6 +38,7 @@ daemon install sample ..\..\SharpDaemon.Test.Daemon.exe DelayMs=5000
 ## TODO
 
 - [ ] Improve documentation and samples
-- [ ] Implement download and install
+- [ ] Provide working URLs in samples above
 - [ ] Implement secure connection
+
 
