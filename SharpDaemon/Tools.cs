@@ -32,13 +32,27 @@ namespace SharpDaemon
             return sb.ToString();
         }
 
-        public static bool IsChild(string folder, string relative)
+        //checks against existing subfolders
+        public static bool HasDirectChild(string folder, string child)
         {
             var root = Path.GetFullPath(folder);
-            var path = Path.GetFullPath(Path.Combine(root, relative));
-            //this properly handles \ at the end of path
-            var parent = new DirectoryInfo(path).Parent.FullName;
-            return parent.Contains(root);
+            var children = new List<string>(Directory.GetDirectories(root));
+            return children.Contains(Combine(folder, child));
+        }
+
+        //path level check
+        public static bool IsChildPath(string folder, string child)
+        {
+            var root = Path.GetFullPath(folder);
+            var path = Combine(folder, child);
+            //check there is something after root
+            if (path.Length <= root.Length) return false;
+            //check root is parent
+            if (!path.Contains(root)) return false;
+            //check child name contains no navigation leading somewhere else
+            //length + 1 to remove path separator as well
+            if (child != path.Substring(root.Length + 1)) return false;
+            return true;
         }
 
         public static string Combine(string folder, string relative)
@@ -53,16 +67,6 @@ namespace SharpDaemon
             using (var writer = new StreamWriter(entry.Open())) writer.Write(text);
         }
 
-        public static string Absolute(string root, string path)
-        {
-            if (!Path.IsPathRooted(path))
-            {
-                var full = Path.Combine(root, path);
-                return Path.GetFullPath(full); //canonical
-            }
-            return path;
-        }
-
         public static void ExceptionHandler(object sender, UnhandledExceptionEventArgs args)
         {
             ExceptionHandler(args.ExceptionObject as Exception);
@@ -71,7 +75,7 @@ namespace SharpDaemon
         public static void ExceptionHandler(Exception ex)
         {
             Tools.Try(() => Tools.Dump(ex));
-            Tools.Try(() => Stdio.WriteLine("!{0}", ex.Message));
+            Tools.Try(() => Stdio.WriteLine("{0} {1}", ex.GetType(), ex.Message));
             Environment.Exit(1);
         }
 

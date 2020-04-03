@@ -15,6 +15,8 @@ namespace SharpDaemon.Server
             this.downloads = Path.GetFullPath(downloads); //canonic
         }
 
+        //should only support zip download and folder level commands
+        //should prevent any parent folder access
         public void Execute(Output output, params string[] tokens)
         {
             if (tokens[0] == "download")
@@ -44,9 +46,9 @@ namespace SharpDaemon.Server
             {
                 output.WriteLine("download zip <uri>");
                 output.WriteLine("download list");
-                output.WriteLine("download list <path>");
-                output.WriteLine("download delete <path>");
-                output.WriteLine("download rename <path> <newname>");
+                output.WriteLine("download list <folder-name>");
+                output.WriteLine("download delete <folder-name>");
+                output.WriteLine("download rename <folder-name> <new-name>");
             }
         }
 
@@ -56,9 +58,8 @@ namespace SharpDaemon.Server
             if (tokens.Length == 3)
             {
                 var dir = tokens[2];
+                Tools.Assert(Tools.HasDirectChild(downloads, dir), "Directoy not found {0}", dir);
                 path = Tools.Combine(downloads, dir);
-                Tools.Assert(path.Contains(downloads), "Back navigation not allowed");
-                Tools.Assert(Directory.Exists(path), "Directoy doesn't exist {0}", dir);
             }
 
             var total = 0;
@@ -67,6 +68,8 @@ namespace SharpDaemon.Server
                 total++; //remove final \ as well
                 output.WriteLine("{0}", file.Substring(path.Length + 1));
             }
+            output.WriteLine("{0} total directories", total);
+            total = 0;
             foreach (var file in Directory.GetFiles(path))
             {
                 total++; //remove final \ as well
@@ -79,25 +82,24 @@ namespace SharpDaemon.Server
         private void ExecuteDelete(Output output, params string[] tokens)
         {
             var dir = tokens[2];
-            var path = Tools.Combine(downloads, dir);
-            Tools.Assert(Tools.IsChild(downloads, dir), "Back navigation not allowed");
-            Tools.Assert(Directory.Exists(path), "Directoy doesn't exist {0}", dir);
-            Directory.Delete(path, true);
+            Tools.Assert(Tools.HasDirectChild(downloads, dir), "Directoy not found {0}", dir);
+            Directory.Delete(Tools.Combine(downloads, dir), true);
+            output.WriteLine("Directory {0} deleted", dir);
         }
 
         private void ExecuteRename(Output output, params string[] tokens)
         {
             var dir = tokens[2];
+            Tools.Assert(Tools.HasDirectChild(downloads, dir), "Directoy {0} not found", dir);
             var path = Tools.Combine(downloads, dir);
-            Tools.Assert(Tools.IsChild(downloads, dir), "Back navigation not allowed");
-            Tools.Assert(Directory.Exists(path), "Directoy doesn't exist {0}", dir);
 
             var name = tokens[3];
-            var parent = Path.GetDirectoryName(path);
-            var npath = Path.Combine(parent, name);
-            var ndir = npath.Substring(downloads.Length + 1);
-            Tools.Assert(!Directory.Exists(npath), "Directoy alreay exist {0}", ndir);
+            Tools.Assert(Tools.IsChildPath(downloads, name), "Invalid new name {0}", name);
+            var npath = Tools.Combine(downloads, name);
+            Tools.Assert(!Directory.Exists(npath), "Directoy {0} already exist", name);
+
             Directory.Move(path, npath);
+            output.WriteLine("Directory {0} renamed to {1}", dir, name);
         }
 
         private void ExecuteZip(Output output, params string[] tokens)
@@ -108,7 +110,7 @@ namespace SharpDaemon.Server
             {
                 //https://www.nuget.org/api/v2/package/SharpSerial/1.0.1
                 //redirects to https://globalcdn.nuget.org/packages/sharpserial.1.0.1.nupkg
-                output.WriteLine("Response URI : {0}...", response.ResponseUri);
+                //output.WriteLine("Response URI : {0}...", response.ResponseUri);
                 var zipfile = Path.GetFileName(response.ResponseUri.LocalPath);
 
                 //Content-Disposition: attachment; filename="fname.ext"
@@ -117,23 +119,23 @@ namespace SharpDaemon.Server
                 //SharpDaemon-sample.zip uploaded to drive with public link
                 //https://docs.google.com/uc?export=download&id=1YgDnibq0waSbCYsobl3SIP_dSgD5DYbl
                 var disposition = response.Headers["Content-Disposition"];
-                var mime = response.Headers["Content-Type"];
-                output.WriteLine("Content-Disposition : {0}...", disposition);
-                output.WriteLine("Content-Type : {0}...", mime);
+                //var mime = response.Headers["Content-Type"];
+                //output.WriteLine("Content-Disposition : {0}...", disposition);
+                //output.WriteLine("Content-Type : {0}...", mime);
                 if (!string.IsNullOrEmpty(disposition))
                 {
                     var header = new ContentDisposition(disposition);
                     if (!string.IsNullOrEmpty(header.FileName)) zipfile = header.FileName;
                 }
-                var zipdir = zipfile.Replace(".", "_");
-                output.WriteLine("Extracting to {0}...", zipdir);
+                var zipdir = zipfile; //do not remove dots
                 var zipdirpath = Path.Combine(downloads, zipdir);
+                Tools.Assert(Tools.IsChildPath(downloads, zipdir), "Invalid directory name {0}", zipdir);
                 Tools.Assert(!Directory.Exists(zipdirpath), "Download directory already exists {0}", zipdir);
                 using (var zip = new ZipArchive(response.GetResponseStream()))
                 {
                     Directory.CreateDirectory(zipdirpath);
                     zip.ExtractToDirectory(zipdirpath);
-                    output.WriteLine("Downloading finished");
+                    output.WriteLine("Downloaded to {0}", zipdir);
                 }
             }
         }

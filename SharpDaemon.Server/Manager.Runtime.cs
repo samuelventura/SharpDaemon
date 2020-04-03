@@ -27,7 +27,7 @@ namespace SharpDaemon.Server
                 {
                     process = new DaemonProcess(new DaemonProcess.Args
                     {
-                        Executable = Tools.Absolute(root, dto.Path),
+                        Executable = Tools.Combine(root, dto.Path),
                         Arguments = dto.Args,
                     });
                     disposer.Push(process);

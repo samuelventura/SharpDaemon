@@ -60,6 +60,8 @@ namespace SharpDaemon.Server
             var eppath = Path.Combine(args.Ws, "SharpDaemon.ep.txt");
             var downloads = Path.Combine(args.Ws, "Downloads");
 
+            named.WriteLine("Workspace {0}", args.Ws);
+
             Directory.CreateDirectory(downloads);
 
             using (var disposer = new Disposer())

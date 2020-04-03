@@ -38,11 +38,9 @@ namespace SharpDaemon.Server
         {
             var id = tokens[2];
             clients.TryGetValue(id, out var rt);
-            if (rt != null)
-            {
-                rt.Dispose();
-                output.WriteLine("Client {0} killed", id);
-            }
+            Tools.Assert(rt != null, "Client {0} not found", id);
+            rt.Dispose();
+            output.WriteLine("Client {0} killed", id);
         }
 
         private void Execute(Output output, Action action) => register.Run(action, output.OnException);

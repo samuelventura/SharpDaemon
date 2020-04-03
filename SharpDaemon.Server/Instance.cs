@@ -23,7 +23,7 @@ namespace SharpDaemon.Server
 
         public Instance(Args args)
         {
-            named = new NamedOutput("LISTENER", args.Output);
+            named = new NamedOutput("INSTANCE", args.Output);
             using (var disposer = new Disposer())
             {
                 named.WriteLine("DbPath {0}", args.DbPath);
@@ -37,7 +37,7 @@ namespace SharpDaemon.Server
                 manager = new Manager(new Manager.Args
                 {
                     RestartDelay = args.RestartDelay,
-                    Downloads = args.Downloads,
+                    Root = args.Downloads,
                     Database = args.DbPath,
                     Output = named.Output,
                 });
