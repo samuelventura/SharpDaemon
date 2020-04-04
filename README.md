@@ -28,6 +28,7 @@ Daemons can only be installed into the workspace by:
 - Windows 10 Pro 64x (Windows only)
 - VS Code (bash terminal from Git4Win)
 - Net Core SDK 3.1.201
+- Some batch files require [Zip4Win](http://gnuwin32.sourceforge.net/packages/zip.htm)
 
 ## Development CLI
 

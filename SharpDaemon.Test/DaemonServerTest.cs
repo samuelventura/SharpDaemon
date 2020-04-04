@@ -1,21 +1,56 @@
 using System;
-using System.IO;
 using System.Threading;
-using System.IO.Compression;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using SharpDaemon.Server;
 
 namespace SharpDaemon.Test
 {
+    //Testing Environment Setup
+    //In Shell $1
+    // .\DebugDaemons.bat
+    //In Shell #2
+    // run $env:REPO=($pwd).path (set REPO=%CD%)
+    // dotnet test SharpDaemon.Test
+    class Env
+    {
+        public string Repo;
+        public string WebEP;
+        public string WebRoot;
+
+        public Env()
+        {
+            Repo = Environment.GetEnvironmentVariable("REPO");
+            WebRoot = $@"{Repo}\Output";
+            WebEP = "127.0.0.1:12334";
+        }
+    }
+
     public class DaemonServerTest
     {
         [Test]
         public void BasicTest()
         {
-            var testo = new TestOutput();
+            Run((env, shell, io, tio) =>
+           {
+               shell.Execute(io, "download", "zip", $@"http://{env.WebEP}/Daemon.StaticWebServer.zip");
+               tio.WaitFor(400, @"Downloaded to Daemon.StaticWebServer.zip");
+               shell.Execute(io, "daemon", "install", "web", @"Daemon.StaticWebServer.zip\Daemon.StaticWebServer.exe", $"Endpoint=127.0.0.1:12335", $"Root={env.WebRoot}");
+               tio.WaitFor(400, @"MANAGER Daemon web started Daemon.StaticWebServer\|\d+");
+               tio.WaitFor(400, $@"web_\d+ < Serving at http://127.0.0.1:12335");
+
+               Thread.Sleep(100);
+               //Environment.Exit(0); brute force
+           });
+        }
+
+        void Run(Action<Env, IShell, Shell.IO, TestIO> test)
+        {
+            var env = new Env();
+
+            var tio = new TestIO();
             var outputs = new Outputs();
-            outputs.Add(testo);
+            outputs.Add(tio);
             outputs.Add(new ConsoleOutput());
             Disposable.Debug = outputs;
             var cargs = new Launcher.CliArgs
@@ -25,42 +60,18 @@ namespace SharpDaemon.Test
                 Ip = "127.0.0.1",
                 Ws = Tools.Relative("WS_{0}", Tools.Compact(DateTime.Now)),
             };
-            var webroot = Tools.Relative(cargs.Ws, "WebRoot");
-            Directory.CreateDirectory(webroot);
-            var zippath = Tools.Combine(webroot, "Daemon.StaticWebServer.zip");
-            Tools.ZipFromFiles(zippath, Tools.ExecutableDirectory()
-                , "Daemon.StaticWebServer.exe"
-                , "SharpDaemon.dll"
-                , "Nancy.Hosting.Self.dll"
-                , "Nancy.dll"
-                , "LaunchStaticWebServer.bat"
-            );
-            ZipFile.ExtractToDirectory(zippath, Tools.Combine(cargs.Ws, "Downloads/web"));
             using (var disposer = new Disposer())
             {
                 var io = new StreamIO(outputs, new ConsoleTextReader());
                 disposer.Push(io);
                 var instance = Launcher.Launch(outputs, cargs);
                 disposer.Push(instance);
-                //0.0.0.0 throws System.Net.HttpListenerException The request is not supported
-                //localhost Nancy.Hosting.Self.AutomaticUrlReservationCreationFailureException The Nancy self host was unable to start, as no namespace reservation existed for the provided url(s).
-                //192.168.1.69 Nancy.Hosting.Self.AutomaticUrlReservationCreationFailureException The Nancy self host was unable to start, as no namespace reservation existed for the provided url(s).
-                var webep = "127.0.0.1:12334";
                 var shell = instance.CreateShell();
-                //Beware | is regex reserved `or`
-                shell.Execute(io, "daemon", "install", "web", "web\\Daemon.StaticWebServer.exe", $"Endpoint={webep}", string.Format("Root={0}", webroot));
-                testo.WaitFor(400, @"MANAGER Daemon web started Daemon.StaticWebServer\|\d+");
-                testo.WaitFor(400, $@"web_\d+ < Serving at http://{webep}");
-                shell.Execute(io, "download", "zip", $@"http://{webep}/Daemon.StaticWebServer.zip");
-                testo.WaitFor(400, @"Downloaded to Daemon.StaticWebServer.zip");
-
-                Thread.Sleep(2000);
+                test(env, shell, io, tio);
             }
-
-            //Environment.Exit(0);
         }
 
-        class TestOutput : Output
+        class TestIO : Output
         {
             private readonly LockedQueue<string> queue = new LockedQueue<string>();
 
@@ -77,7 +88,8 @@ namespace SharpDaemon.Test
                 while (true)
                 {
                     var line = queue.Pop(1, null);
-                    if (line != null) Stdio.WriteLine("POP {0}", line);
+                    //if (line != null) Stdio.WriteLine("POP {0}", line);
+                    //Beware | is regex reserved `or`
                     if (line != null && Regex.IsMatch(line, pattern)) break;
                     if (DateTime.Now > dl) throw Tools.Make("Timeout waiting for `{0}`", pattern);
                 }

@@ -67,8 +67,10 @@ namespace SharpDaemon.Server
 
         protected override void Dispose(bool disposed)
         {
-            listener.Dispose();
+            //first kill all processes
             manager.Dispose();
+            //now stop listening
+            listener.Dispose();
         }
     }
 }

@@ -47,8 +47,6 @@ namespace SharpDaemon.Server
             {
                 installed.Clear();
                 foreach (var rt in running.Values) rt.Dispose();
-                ExecuteKillAllDaemons(named, null);
-                ExecuteKillAllChildren(named, null);
                 running.Clear();
             });
         }
