@@ -56,6 +56,11 @@ namespace SharpDaemon.Server
                 Tools.Try(runner.Dispose);
             }
 
+            public bool WillRestart()
+            {
+                return restart.HasValue;
+            }
+
             public bool NeedRestart()
             {
                 return restart.HasValue && DateTime.Now > restart.Value;

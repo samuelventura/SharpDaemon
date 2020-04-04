@@ -106,6 +106,7 @@ namespace SharpDaemon.Server
         {
             var uri = new Uri(tokens[2], UriKind.Absolute);
             var request = (HttpWebRequest)WebRequest.Create(uri);
+            request.Timeout = 5000;
             using (var response = (HttpWebResponse)request.GetResponse())
             {
                 //https://www.nuget.org/api/v2/package/SharpSerial/1.0.1

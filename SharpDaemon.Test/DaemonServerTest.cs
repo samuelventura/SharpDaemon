@@ -48,7 +48,7 @@ namespace SharpDaemon.Test
                 var webep = "127.0.0.1:12334";
                 var shell = instance.CreateShell();
                 //Beware | is regex reserved `or`
-                shell.Execute(io, "daemon", "install", "web", "web\\Daemon.StaticWebServer.exe", "Test=true", $"Endpoint={webep}", string.Format("Root={0}", webroot));
+                shell.Execute(io, "daemon", "install", "web", "web\\Daemon.StaticWebServer.exe", $"Endpoint={webep}", string.Format("Root={0}", webroot));
                 testo.WaitFor(400, @"MANAGER Daemon web started Daemon.StaticWebServer\|\d+");
                 testo.WaitFor(400, $@"web_\d+ < Serving at http://{webep}");
                 shell.Execute(io, "download", "zip", $@"http://{webep}/Daemon.StaticWebServer.zip");

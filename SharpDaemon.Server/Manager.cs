@@ -47,6 +47,8 @@ namespace SharpDaemon.Server
             {
                 installed.Clear();
                 foreach (var rt in running.Values) rt.Dispose();
+                ExecuteKillAllDaemons(named, null);
+                ExecuteKillAllChildren(named, null);
                 running.Clear();
             });
         }
@@ -69,6 +71,11 @@ namespace SharpDaemon.Server
                 else if (rt.NeedRestart())
                 {
                     restarting.Add(rt);
+                }
+                else if (rt.WillRestart())
+                {
+                    //dispose immediatelly
+                    if (!rt.Disposed) Tools.Try(rt.Dispose);
                 }
             }
 

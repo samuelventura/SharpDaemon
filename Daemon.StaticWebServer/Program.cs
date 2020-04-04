@@ -9,7 +9,6 @@ namespace SharpDaemon.Test.Daemon
     {
         public string Endpoint { get; set; }
         public string Root { get; set; }
-        public bool Test { get; set; }
     }
 
     class Program
@@ -36,10 +35,12 @@ namespace SharpDaemon.Test.Daemon
             Tools.Assert(!string.IsNullOrWhiteSpace(cargs.Endpoint), "Missing endpoint");
             Tools.Assert(!string.IsNullOrWhiteSpace(cargs.Root), "Missing root");
 
-            using (var host = cargs.Test ? CreateForTesting(cargs) : CreateAsAdmin(cargs))
+            var uri = new Uri(string.Format("http://{0}", cargs.Endpoint));
+            var host = new NancyHost(new Bootstrapper() { Root = cargs.Root }, uri);
+            using (host)
             {
                 host.Start();
-                Stdio.WriteLine("Serving at {0}", Uri(cargs.Endpoint));
+                Stdio.WriteLine("Serving at {0}", uri);
 
                 var line = Stdio.ReadLine();
                 while (line != null) line = Stdio.ReadLine();
@@ -48,23 +49,6 @@ namespace SharpDaemon.Test.Daemon
             Stdio.WriteLine("Stdin closed");
 
             Environment.Exit(0);
-        }
-
-        static Uri Uri(string endpoint) => new Uri(string.Format("http://{0}", endpoint));
-
-        public static NancyHost CreateForTesting(CliArgs cargs)
-        {
-            var uri = Uri(cargs.Endpoint);
-            return new NancyHost(new Bootstrapper() { Root = cargs.Root }, uri);
-        }
-
-        public static NancyHost CreateAsAdmin(CliArgs cargs)
-        {
-            var uri = Uri(cargs.Endpoint);
-            var conf = new HostConfiguration();
-            conf.RewriteLocalhost = true;
-            conf.UrlReservations.CreateAutomatically = true; //needs elevation
-            return new NancyHost(new Bootstrapper() { Root = cargs.Root }, conf, uri);
         }
 
         class Bootstrapper : DefaultNancyBootstrapper

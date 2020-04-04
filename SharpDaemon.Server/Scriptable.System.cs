@@ -146,10 +146,10 @@ namespace SharpDaemon.Server
 
         private void ExecuteChildren(IOutput io, params string[] tokens)
         {
+            var count = 0;
             var process = Process.GetCurrentProcess();
             io.WriteLine("Current process id {0}", process.Id);
             var mos = new ManagementObjectSearcher($"Select * From Win32_Process Where ParentProcessID={process.Id}");
-            var count = 0;
             foreach (var mo in mos.Get())
             {
                 count++;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Management;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
@@ -28,6 +29,14 @@ namespace SharpDaemon.Server
                 {
                     Execute(io, () => ExecuteKill(io, tokens));
                 }
+                if (tokens.Length == 3 && tokens[1] == "killall" && tokens[2] == "daemons")
+                {
+                    Execute(io, () => ExecuteKillAllDaemons(io, tokens));
+                }
+                if (tokens.Length == 3 && tokens[1] == "killall" && tokens[2] == "children")
+                {
+                    Execute(io, () => ExecuteKillAllChildren(io, tokens));
+                }
                 if (tokens.Length >= 4 && tokens[1] == "install")
                 {
                     Execute(io, () => ExecuteInstall(io, tokens));
@@ -40,7 +49,9 @@ namespace SharpDaemon.Server
                 io.WriteLine("daemon install <id> <exe-relative-path> <optional-list-of-args>");
                 io.WriteLine(" sample: daemon install sample1 sample1/main.exe 1 2 3 `a b c`");
                 io.WriteLine("daemon uninstall <id>");
-                io.WriteLine("daemon kill <id>");
+                io.WriteLine("daemon kill <optional-id>");
+                io.WriteLine("daemon killall daemons");
+                io.WriteLine("daemon killall children");
             }
         }
 
@@ -81,6 +92,40 @@ namespace SharpDaemon.Server
             Tools.Assert(rt != null, "Daemon {0} not found", id);
             Process.GetProcessById(rt.Pid).Kill();
             io.WriteLine("Daemon {0} killed", id);
+        }
+
+        private void ExecuteKillAllDaemons(IOutput io, params string[] tokens)
+        {
+            foreach (var rt in running.Values)
+            {
+                try
+                {
+                    Process.GetProcessById(rt.Pid).Kill();
+                    io.WriteLine("Daemon {0} killed", rt.Id);
+                }
+                catch (Exception ex) { io.WriteLine("Error killing {0} {1} {2}", rt.Id, rt.Pid, ex); }
+            }
+            io.WriteLine("{0} total", running.Count);
+        }
+
+        private void ExecuteKillAllChildren(IOutput io, params string[] tokens)
+        {
+            var count = 0;
+            var process = Process.GetCurrentProcess();
+            io.WriteLine("Current process id {0}", process.Id);
+            var mos = new ManagementObjectSearcher($"Select * From Win32_Process Where ParentProcessID={process.Id}");
+            foreach (var mo in mos.Get())
+            {
+                count++;
+                var pid = mo["ProcessID"].ToString();
+                try
+                {
+                    Process.GetProcessById(int.Parse(pid)).Kill();
+                    io.WriteLine("Child {0} killed", pid);
+                }
+                catch (Exception ex) { io.WriteLine("Error killing {0} {1}", pid, ex); }
+            }
+            io.WriteLine("{0} total", count);
         }
 
         private void ExecuteInstall(IOutput io, params string[] tokens)

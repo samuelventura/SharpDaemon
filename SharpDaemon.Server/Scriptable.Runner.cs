@@ -1,10 +1,18 @@
 ﻿using System;
+using System.IO;
 using System.Text;
 
 namespace SharpDaemon.Server
 {
     public class RunnerScriptable : IShell
     {
+        private readonly string downloads;
+
+        public RunnerScriptable(string downloads)
+        {
+            this.downloads = Path.GetFullPath(downloads); //canonic
+        }
+
         public void Execute(Shell.IO io, params string[] tokens)
         {
             if (tokens[0] == "run")
@@ -36,8 +44,8 @@ namespace SharpDaemon.Server
             }
             DaemonProcess.Interactive(io, new DaemonProcess.Args
             {
-                Executable = exe,
-                Arguments = args.ToString(),
+                Executable = exe.Replace("{root}", downloads),
+                Arguments = args.ToString().Replace("{root}", downloads),
             });
         }
     }

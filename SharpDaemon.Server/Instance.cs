@@ -33,7 +33,7 @@ namespace SharpDaemon.Server
                 named.WriteLine("TcpPort {0}", args.TcpPort);
                 factory = new ShellFactory();
                 factory.Add(new SystemScriptable());
-                factory.Add(new RunnerScriptable());
+                factory.Add(new RunnerScriptable(args.Downloads));
                 factory.Add(new DownloadScriptable(args.Downloads));
                 manager = new Manager(new Manager.Args
                 {
