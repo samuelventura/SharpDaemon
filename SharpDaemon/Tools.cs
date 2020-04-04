@@ -3,13 +3,34 @@ using System.IO;
 using System.Text;
 using System.Reflection;
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.IO.Compression;
+using System.Security.Principal;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace SharpDaemon
 {
     public static class Tools
     {
+        //https://stackoverflow.com/questions/35280597/net-tcplistener-stop-method-does-not-stop-the-listener-when-there-is-a-child-pr
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool SetHandleInformation(IntPtr hObject, uint dwMask, uint dwFlags);
+        private const uint HANDLE_FLAG_INHERIT = 1;
+
+        public static void MakeNotInheritable(this TcpListener tcpListener)
+        {
+            var handle = tcpListener.Server.Handle;
+            SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+        }
+
+        public static bool IsAdministrator()
+        {
+            var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
         public static string Compact(DateTime dt) => dt.ToString("yyyyMMdd_HHmmss_fff");
         public static string Format(DateTime dt) => dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
         public static string Format(string format, params object[] args)
@@ -67,6 +88,18 @@ namespace SharpDaemon
             using (var writer = new StreamWriter(entry.Open())) writer.Write(text);
         }
 
+        public static void ZipFromFiles(string zippath, string root, params string[] files)
+        {
+            using (var zip = ZipFile.Open(zippath, ZipArchiveMode.Create))
+            {
+                foreach (var file in files)
+                {
+                    var path = Combine(root, file);
+                    zip.CreateEntryFromFile(path, file);
+                }
+            }
+        }
+
         public static void ExceptionHandler(object sender, UnhandledExceptionEventArgs args)
         {
             ExceptionHandler(args.ExceptionObject as Exception);
@@ -107,6 +140,12 @@ namespace SharpDaemon
             return Path.Combine(root, child);
         }
 
+        public static string ExecutableDirectory()
+        {
+            var exe = Assembly.GetExecutingAssembly().Location;
+            return Path.GetDirectoryName(exe);
+        }
+
         public static void Dump(Exception ex)
         {
             var folder = Relative("Exceptions");
@@ -145,51 +184,6 @@ namespace SharpDaemon
             if (property == null) throw Make("Property not found {0}", Readable(propertyName));
             var value = Convert.ChangeType(propertyValue, property.PropertyType);
             property.SetValue(target, value, null);
-        }
-
-        public static string[] Tokens(string line, Output output, char quote = '`')
-        {
-            var list = new List<string>();
-            var sb = new StringBuilder();
-
-            var e = line.GetEnumerator();
-            while (e.MoveNext())
-            {
-                if (char.IsWhiteSpace(e.Current)) continue;
-                else if (e.Current == quote)
-                {
-                    sb.Clear();
-                    sb.Append(e.Current);
-                    while (e.MoveNext())
-                    {
-                        sb.Append(e.Current);
-                        if (e.Current == quote) break;
-                    }
-                    var part = sb.ToString();
-                    if (part.Length >= 2 && part[0] == quote && part[part.Length - 1] == quote)
-                    {
-                        list.Add(part.Substring(1, part.Length - 2));
-                    }
-                    else
-                    {
-                        output.WriteLine("Error : unclosed quote {0}", quote);
-                        return null;
-                    }
-                }
-                else
-                {
-                    sb.Clear();
-                    sb.Append(e.Current);
-                    while (e.MoveNext())
-                    {
-                        if (char.IsWhiteSpace(e.Current)) break;
-                        sb.Append(e.Current);
-                    }
-                    list.Add(sb.ToString());
-                }
-            }
-
-            return list.ToArray();
         }
     }
 }

@@ -43,8 +43,7 @@ namespace SharpDaemon
         {
             Tools.Try(() =>
             {
-                process.StandardInput.WriteLine();
-                process.StandardInput.Flush();
+                process.StandardInput.Close();
                 process.WaitForExit(200);
             });
             Tools.Try(process.Kill);
@@ -60,6 +59,37 @@ namespace SharpDaemon
         {
             process.StandardInput.WriteLine(format, args);
             process.StandardInput.Flush();
+        }
+
+        public static void Interactive(Shell.IO io, Args args)
+        {
+            using (var disposer = new Disposer())
+            {
+                var reader = new Runner(new Runner.Args() { ExceptionHandler = io.OnException, });
+                disposer.Push(reader);
+                var process = new DaemonProcess(args);
+                io.WriteLine("Process {0} created", process.Id);
+                disposer.Push(process);
+                var queue = new LockedQueue<bool>();
+                reader.Run(() =>
+                {
+                    var line = process.ReadLine();
+                    while (line != null)
+                    {
+                        io.WriteLine(line);
+                        line = process.ReadLine();
+                    }
+                });
+                reader.Run(() => queue.Push(true));
+                while (true)
+                {
+                    var line = io.ReadLine(out var eof);
+                    if (eof) Disposable.Trace("EOF");
+                    if (eof) return;
+                    if (line != null) process.WriteLine(line);
+                    if (queue.Pop(1, false)) return;
+                }
+            }
         }
     }
 }

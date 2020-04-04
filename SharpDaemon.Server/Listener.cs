@@ -31,6 +31,7 @@ namespace SharpDaemon.Server
             clients = new Dictionary<string, ClientRt>();
             named = new NamedOutput("LISTENER", args.Output);
             server = new TcpListener(IPAddress.Parse(args.IpAddress), args.TcpPort);
+            server.MakeNotInheritable();
             using (var disposer = new Disposer())
             {
                 //push must match dispose order

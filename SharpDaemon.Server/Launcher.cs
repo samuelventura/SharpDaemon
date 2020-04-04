@@ -55,9 +55,9 @@ namespace SharpDaemon.Server
         {
             var named = new NamedOutput("LAUNCHER", outputs);
 
-            var dbpath = Path.Combine(args.Ws, "SharpDaemon.litedb");
-            var logpath = Path.Combine(args.Ws, "SharpDaemon.log.txt");
-            var eppath = Path.Combine(args.Ws, "SharpDaemon.ep.txt");
+            var dbpath = Path.Combine(args.Ws, "SharpDaemon.LiteDb");
+            var logpath = Path.Combine(args.Ws, "SharpDaemon.Log.txt");
+            var eppath = Path.Combine(args.Ws, "SharpDaemon.Endpoint.txt");
             var downloads = Path.Combine(args.Ws, "Downloads");
 
             named.WriteLine("Workspace {0}", args.Ws);

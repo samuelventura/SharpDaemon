@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Management" Version="4.7.0" />
     <ProjectReference Include="..\SharpDaemon\SharpDaemon.csproj" />  
     <PackageReference Include="LiteDb" Version="5.0.5" />
   </ItemGroup>

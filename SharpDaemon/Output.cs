@@ -4,7 +4,13 @@ using System.Collections.Generic;
 
 namespace SharpDaemon
 {
-    public abstract class Output
+    public interface IOutput
+    {
+        void WriteLine(string format, params object[] args);
+        void OnException(Exception ex);
+    }
+
+    public abstract class Output : IOutput
     {
         public abstract void WriteLine(string format, params object[] args);
         public void OnException(Exception ex) => WriteLine("{0}", ex.ToString());
@@ -64,7 +70,7 @@ namespace SharpDaemon
         }
     }
 
-    public class StdOutput : Output
+    public class ConsoleOutput : Output
     {
         private readonly object locker = new object();
 
@@ -81,9 +87,9 @@ namespace SharpDaemon
     public class WriterOutput : Output, IDisposable
     {
         private readonly object locker = new object();
-        private readonly StreamWriter writer;
+        private readonly TextWriter writer;
 
-        public WriterOutput(StreamWriter writer)
+        public WriterOutput(TextWriter writer)
         {
             this.writer = writer;
         }

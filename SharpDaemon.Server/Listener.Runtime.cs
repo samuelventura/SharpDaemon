@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Net;
-using System.Text;
 using System.Net.Sockets;
 
 namespace SharpDaemon.Server
@@ -10,11 +9,9 @@ namespace SharpDaemon.Server
     {
         class ClientRt : Disposable
         {
+            private IPEndPoint endpoint;
             private NamedOutput named;
             private TcpClient client;
-            private IPEndPoint endpoint;
-            private WriterOutput writer;
-            private StreamReader reader;
             private DateTime start;
             private DateTime last;
             private Runner runner;
@@ -31,9 +28,6 @@ namespace SharpDaemon.Server
                     start = DateTime.Now;
                     last = DateTime.Now;
                     shell = factory.Create();
-                    var stream = client.GetStream();
-                    reader = new StreamReader(stream);
-                    writer = new WriterOutput(new StreamWriter(stream));
                     endpoint = client.Client.RemoteEndPoint as IPEndPoint;
                     var name = string.Format("Client_{0}", endpoint);
                     named = new NamedOutput(name, output);
@@ -52,6 +46,7 @@ namespace SharpDaemon.Server
 
             protected override void Dispose(bool disposed)
             {
+                //no need to close stream (writer and reader)
                 Tools.Try(client.Close);
                 runner.Dispose();
             }
@@ -82,14 +77,19 @@ namespace SharpDaemon.Server
 
             private void ReadLoop()
             {
-                var line = reader.ReadLine();
-                while (line != null)
+                var stream = client.GetStream();
+                var reader = new StreamReader(stream);
+                var writer = new WriterOutput(new StreamWriter(stream));
+                using (var io = new StreamIO(writer, reader))
                 {
-                    last = DateTime.Now;
-                    named.WriteLine("< {0}", line);
-                    var tokens = Tools.Tokens(line, writer);
-                    if (tokens != null && tokens.Length > 0) shell.Execute(writer, tokens);
-                    line = reader.ReadLine();
+                    var line = io.ReadLine();
+                    while (line != null)
+                    {
+                        last = DateTime.Now;
+                        named.WriteLine("< {0}", line);
+                        shell.ParseAndExecute(io, line);
+                        line = io.ReadLine();
+                    }
                 }
             }
         }

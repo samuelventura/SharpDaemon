@@ -8,9 +8,9 @@ namespace SharpDaemon.Server
         {
             AppDomain.CurrentDomain.UnhandledException += Tools.ExceptionHandler;
 
-            var stdout = new StdOutput();
             var outputs = new Outputs();
-            outputs.Add(stdout);
+            outputs.Add(new ConsoleOutput());
+            Disposable.Debug = outputs;
 
             var named = new NamedOutput("PROGRAM", outputs);
 
@@ -22,12 +22,13 @@ namespace SharpDaemon.Server
             {
                 named.WriteLine("ReadLine loop...");
                 var shell = instance.CreateShell();
-                var line = Console.ReadLine();
+                var writer = new WriterOutput(Console.Out);
+                var io = new StreamIO(writer, Console.In);
+                var line = io.ReadLine();
                 while (line != null)
                 {
-                    var tokens = Tools.Tokens(line, stdout);
-                    if (tokens != null && tokens.Length > 0) shell.Execute(stdout, tokens);
-                    line = Console.ReadLine();
+                    shell.ParseAndExecute(io, line);
+                    line = io.ReadLine();
                 }
                 named.WriteLine("Stdin closed");
             }

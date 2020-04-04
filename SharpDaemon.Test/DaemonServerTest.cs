@@ -1,16 +1,10 @@
 using System;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
-using System.Collections.Generic;
 using NUnit.Framework;
 using SharpDaemon.Server;
-using SharpDaemon;
-using Nancy.Hosting.Self;
-using Nancy.Conventions;
-using Nancy;
 
 namespace SharpDaemon.Test
 {
@@ -22,7 +16,8 @@ namespace SharpDaemon.Test
             var testo = new TestOutput();
             var outputs = new Outputs();
             outputs.Add(testo);
-            outputs.Add(new StdOutput());
+            outputs.Add(new ConsoleOutput());
+            Disposable.Debug = outputs;
             var cargs = new Launcher.CliArgs
             {
                 Delay = 0, //gets 100ms minimum
@@ -30,53 +25,41 @@ namespace SharpDaemon.Test
                 Ip = "127.0.0.1",
                 Ws = Tools.Relative("WS_{0}", Tools.Compact(DateTime.Now)),
             };
-            Directory.CreateDirectory(cargs.Ws);
-            var zippath = Path.Combine(cargs.Ws, "sample.zip");
-            using (var zip = ZipFile.Open(zippath, ZipArchiveMode.Create))
-            {
-                zip.CreateEntryFromFile(Tools.Relative("SharpDaemon.Test.Daemon.exe"), "SharpDaemon.Test.Daemon.exe");
-                zip.CreateEntryFromFile(Tools.Relative("SharpDaemon.dll"), "SharpDaemon.dll");
-                zip.EntryFromString("Main.txt", "SharpDaemon.Test.Daemon.exe\nMsDelay=200");
-            }
-            const string URI = "http://127.0.0.1:9999";
-            var sampleURI = string.Format("{0}/sample.zip", URI);
-            var host = new NancyHost(new Bootstrapper() { Root = cargs.Ws }, new Uri(URI));
+            var webroot = Tools.Relative(cargs.Ws, "WebRoot");
+            Directory.CreateDirectory(webroot);
+            var zippath = Tools.Combine(webroot, "Daemon.StaticWebServer.zip");
+            Tools.ZipFromFiles(zippath, Tools.ExecutableDirectory()
+                , "Daemon.StaticWebServer.exe"
+                , "SharpDaemon.dll"
+                , "Nancy.Hosting.Self.dll"
+                , "Nancy.dll"
+                , "LaunchStaticWebServer.bat"
+            );
+            ZipFile.ExtractToDirectory(zippath, Tools.Combine(cargs.Ws, "Downloads/web"));
             using (var disposer = new Disposer())
             {
-                disposer.Push(host.Stop);
-                host.Start();
+                var io = new StreamIO(outputs, new ConsoleTextReader());
+                disposer.Push(io);
                 var instance = Launcher.Launch(outputs, cargs);
                 disposer.Push(instance);
+                //0.0.0.0 throws System.Net.HttpListenerException The request is not supported
+                //localhost Nancy.Hosting.Self.AutomaticUrlReservationCreationFailureException The Nancy self host was unable to start, as no namespace reservation existed for the provided url(s).
+                //192.168.1.69 Nancy.Hosting.Self.AutomaticUrlReservationCreationFailureException The Nancy self host was unable to start, as no namespace reservation existed for the provided url(s).
+                var webep = "127.0.0.1:12334";
                 var shell = instance.CreateShell();
-                shell.Execute(outputs, "daemon", "install", sampleURI);
-                testo.WaitFor(1000, "MANAGER Daemon sample.zip installing");
-                testo.WaitFor(400, "CONTROLLER Daemon sample.zip restarted SharpDaemon.Test.Daemon|\\d+");
-                shell.Execute(outputs, "daemon", "install", "sample", @"..\..\SharpDaemon.Test.Daemon.exe", "Mode=Echo Data=Hello Delay=200");
-                testo.WaitFor(400, "MANAGER Daemon sample installing");
-                testo.WaitFor(400, "CONTROLLER Daemon sample starting");
-                testo.WaitFor(400, "CONTROLLER Daemon sample started SharpDaemon.Test.Daemon|\\d+");
-                testo.WaitFor(400, "CONTROLLER Daemon sample SharpDaemon.Test.Daemon|\\d+ < Hello");
-                testo.WaitFor(1000, "CONTROLLER Daemon sample restarting after \\d+ms");
-                testo.WaitFor(400, "CONTROLLER Daemon sample restarted SharpDaemon.Test.Daemon|\\d+");
-                shell.Execute(outputs, "daemon", "uninstall", "sample");
-                testo.WaitFor(400, "MANAGER Daemon sample uninstalling...");
-                testo.WaitFor(400, "CONTROLLER Daemon sample removed");
-                Thread.Sleep(200);
-            }
-        }
+                //Beware | is regex reserved `or`
+                shell.Execute(io, "daemon", "install", "web", "web\\Daemon.StaticWebServer.exe", "Test=true", $"Endpoint={webep}", string.Format("Root={0}", webroot));
+                testo.WaitFor(400, @"MANAGER Daemon web started Daemon.StaticWebServer\|\d+");
+                testo.WaitFor(400, $@"web_\d+ < Serving at http://{webep}");
+                shell.Execute(io, "download", "zip", $@"http://{webep}/Daemon.StaticWebServer.zip");
+                testo.WaitFor(400, @"Downloaded to Daemon.StaticWebServer.zip");
 
-        class Bootstrapper : DefaultNancyBootstrapper
-        {
-            public string Root;
-            protected override void ConfigureConventions(NancyConventions conventions)
-            {
-                base.ConfigureConventions(conventions);
-                conventions.StaticContentsConventions.Clear();
-                conventions.StaticContentsConventions.Add
-                (StaticContentConventionBuilder.AddDirectory("/", Root));
+                Thread.Sleep(2000);
             }
 
+            //Environment.Exit(0);
         }
+
         class TestOutput : Output
         {
             private readonly LockedQueue<string> queue = new LockedQueue<string>();

@@ -48,14 +48,17 @@ namespace SharpDaemon
             thread.Join();
         }
 
-        public void Run(Action action)
-        {
-            queue.Push(action);
-        }
-
         public void Run(Action action, Action<Exception> handler)
         {
-            queue.Push(() => Tools.Try(action, handler));
+            Run(() => Tools.Try(action, handler));
+        }
+
+        public void Run(Action action)
+        {
+            //Ideally no push after disposing to avoid holding references to objects
+            //that wont be executed. The trick is to discard runner references right
+            //after disposing them so that cascade follows.
+            queue.Push(action);
         }
 
         private void Loop()

@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Threading;
 
 namespace SharpDaemon
 {
@@ -18,5 +20,32 @@ namespace SharpDaemon
         }
 
         public static string ReadLine() => Console.ReadLine();
+    }
+
+    //Console.ReadLine block Console.WriteLine
+    //Console.In cannot be closed
+    //A read loop in a runner cannot be stopped
+    public class ConsoleTextReader : TextReader
+    {
+        public volatile bool disposed;
+
+        public override int Read()
+        {
+            while (!disposed)
+            {
+                if (!Console.KeyAvailable)
+                {
+                    Thread.Sleep(1);
+                    continue;
+                }
+                return (int)Console.ReadKey().KeyChar;
+            }
+            return -1;
+        }
+
+        protected override void Dispose(bool b)
+        {
+            disposed = true;
+        }
     }
 }

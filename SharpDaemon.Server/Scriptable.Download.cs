@@ -6,7 +6,7 @@ using System.IO.Compression;
 
 namespace SharpDaemon.Server
 {
-    public class DownloadScriptable : IScriptable
+    public class DownloadScriptable : IShell
     {
         private readonly string downloads;
 
@@ -17,42 +17,42 @@ namespace SharpDaemon.Server
 
         //should only support zip download and folder level commands
         //should prevent any parent folder access
-        public void Execute(Output output, params string[] tokens)
+        public void Execute(Shell.IO io, params string[] tokens)
         {
             if (tokens[0] == "download")
             {
                 if (tokens.Length == 2 && tokens[1] == "list")
                 {
-                    ExecuteList(output, tokens);
+                    ExecuteList(io, tokens);
                 }
                 if (tokens.Length == 3 && tokens[1] == "list")
                 {
-                    ExecuteList(output, tokens);
+                    ExecuteList(io, tokens);
                 }
                 if (tokens.Length == 3 && tokens[1] == "delete")
                 {
-                    ExecuteDelete(output, tokens);
+                    ExecuteDelete(io, tokens);
                 }
                 if (tokens.Length == 4 && tokens[1] == "rename")
                 {
-                    ExecuteRename(output, tokens);
+                    ExecuteRename(io, tokens);
                 }
                 if (tokens.Length == 3 && tokens[1] == "zip")
                 {
-                    ExecuteZip(output, tokens);
+                    ExecuteZip(io, tokens);
                 }
             }
             if (tokens[0] == "help")
             {
-                output.WriteLine("download zip <uri>");
-                output.WriteLine("download list");
-                output.WriteLine("download list <folder-name>");
-                output.WriteLine("download delete <folder-name>");
-                output.WriteLine("download rename <folder-name> <new-name>");
+                io.WriteLine("download zip <uri>");
+                io.WriteLine("download list");
+                io.WriteLine("download list <folder-name>");
+                io.WriteLine("download delete <folder-name>");
+                io.WriteLine("download rename <folder-name> <new-name>");
             }
         }
 
-        private void ExecuteList(Output output, params string[] tokens)
+        private void ExecuteList(IOutput io, params string[] tokens)
         {
             var path = downloads;
             if (tokens.Length == 3)
@@ -66,28 +66,28 @@ namespace SharpDaemon.Server
             foreach (var file in Directory.GetDirectories(path))
             {
                 total++; //remove final \ as well
-                output.WriteLine("{0}", file.Substring(path.Length + 1));
+                io.WriteLine("{0}", file.Substring(path.Length + 1));
             }
-            output.WriteLine("{0} total directories", total);
+            io.WriteLine("{0} total directories", total);
             total = 0;
             foreach (var file in Directory.GetFiles(path))
             {
                 total++; //remove final \ as well
                 var furi = new Uri(file);
-                output.WriteLine("{0}", file.Substring(path.Length + 1));
+                io.WriteLine("{0}", file.Substring(path.Length + 1));
             }
-            output.WriteLine("{0} total files", total);
+            io.WriteLine("{0} total files", total);
         }
 
-        private void ExecuteDelete(Output output, params string[] tokens)
+        private void ExecuteDelete(IOutput io, params string[] tokens)
         {
             var dir = tokens[2];
             Tools.Assert(Tools.HasDirectChild(downloads, dir), "Directoy not found {0}", dir);
             Directory.Delete(Tools.Combine(downloads, dir), true);
-            output.WriteLine("Directory {0} deleted", dir);
+            io.WriteLine("Directory {0} deleted", dir);
         }
 
-        private void ExecuteRename(Output output, params string[] tokens)
+        private void ExecuteRename(IOutput io, params string[] tokens)
         {
             var dir = tokens[2];
             Tools.Assert(Tools.HasDirectChild(downloads, dir), "Directoy {0} not found", dir);
@@ -99,10 +99,10 @@ namespace SharpDaemon.Server
             Tools.Assert(!Directory.Exists(npath), "Directoy {0} already exist", name);
 
             Directory.Move(path, npath);
-            output.WriteLine("Directory {0} renamed to {1}", dir, name);
+            io.WriteLine("Directory {0} renamed to {1}", dir, name);
         }
 
-        private void ExecuteZip(Output output, params string[] tokens)
+        private void ExecuteZip(IOutput io, params string[] tokens)
         {
             var uri = new Uri(tokens[2], UriKind.Absolute);
             var request = (HttpWebRequest)WebRequest.Create(uri);
@@ -110,7 +110,7 @@ namespace SharpDaemon.Server
             {
                 //https://www.nuget.org/api/v2/package/SharpSerial/1.0.1
                 //redirects to https://globalcdn.nuget.org/packages/sharpserial.1.0.1.nupkg
-                //output.WriteLine("Response URI : {0}...", response.ResponseUri);
+                //io.WriteLine("Response URI : {0}...", response.ResponseUri);
                 var zipfile = Path.GetFileName(response.ResponseUri.LocalPath);
 
                 //Content-Disposition: attachment; filename="fname.ext"
@@ -120,8 +120,8 @@ namespace SharpDaemon.Server
                 //https://docs.google.com/uc?export=download&id=1YgDnibq0waSbCYsobl3SIP_dSgD5DYbl
                 var disposition = response.Headers["Content-Disposition"];
                 //var mime = response.Headers["Content-Type"];
-                //output.WriteLine("Content-Disposition : {0}...", disposition);
-                //output.WriteLine("Content-Type : {0}...", mime);
+                //io.WriteLine("Content-Disposition : {0}...", disposition);
+                //io.WriteLine("Content-Type : {0}...", mime);
                 if (!string.IsNullOrEmpty(disposition))
                 {
                     var header = new ContentDisposition(disposition);
@@ -135,7 +135,7 @@ namespace SharpDaemon.Server
                 {
                     Directory.CreateDirectory(zipdirpath);
                     zip.ExtractToDirectory(zipdirpath);
-                    output.WriteLine("Downloaded to {0}", zipdir);
+                    io.WriteLine("Downloaded to {0}", zipdir);
                 }
             }
         }
