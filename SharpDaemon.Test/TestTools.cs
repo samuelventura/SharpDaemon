@@ -4,23 +4,48 @@ using System.Text.RegularExpressions;
 
 namespace SharpDaemon.Test
 {
-    //Testing Environment Setup
-    //In Shell $1
-    // .\DebugDaemons.bat
-    //In Shell #2 (as admin for advanced testing)
-    // run $env:REPO=($pwd).path (set REPO=%CD%)
-    // dotnet test SharpDaemon.Test
-    class Env
+    class Config : IDisposable
     {
-        public string Repo;
-        public string WebEP;
+        public string Root;
+        public string ShellRoot;
         public string WebRoot;
+        public string WebIP;
+        public int WebPort;
+        public string ShellIP;
+        public int ShellPort;
+        public bool Daemon;
 
-        public Env()
+        public IWriteLine Timed;
+        private StreamWriter log;
+
+        public Config()
         {
-            Repo = Environment.GetEnvironmentVariable("REPO");
-            WebRoot = $@"{Repo}\Output";
-            WebEP = "127.0.0.1:12334";
+            Root = ExecutableTools.Relative(@"WS");
+            WebRoot = ExecutableTools.Relative(@"WS\Web");
+            WebIP = "127.0.0.1";
+            WebPort = 12334;
+            ShellRoot = ExecutableTools.Relative(@"WS\WS_{0}", TimeTools.Compact(DateTime.Now));
+            ShellIP = "127.0.0.1";
+            ShellPort = 12333;
+
+            Directory.CreateDirectory(WebRoot);
+            Directory.CreateDirectory(ShellRoot);
+
+            var writers = new WriteLineCollection();
+            writers.Add(new ConsoleWriteLine());
+            var logfile = PathTools.Combine(Root, "log.txt");
+            log = new StreamWriter(logfile, true);
+            writers.Add(new TextWriterWriteLine(log));
+            Timed = new TimedWriter(writers);
+            Output.TRACE = new NamedOutput(Timed, "TRACE");
+        }
+
+        public string WebEP { get { return $"{WebIP}:{WebPort}"; } }
+        public string ShellEP { get { return $"{ShellIP}:{ShellPort}"; } }
+
+        public void Dispose()
+        {
+            log.Dispose();
         }
     }
 
@@ -79,33 +104,59 @@ namespace SharpDaemon.Test
 
     class TestTools
     {
-        public static void Run(bool daemon, Action<Env, ITestShell> test)
+        public static void Web(Config config, Action action)
+        {
+            var output = new NamedOutput(config.Timed, "WEB");
+            Directory.CreateDirectory(config.WebRoot);
+            var webserver = ExecutableTools.Relative(@"Daemon.StaticWebServer.exe");
+            var zippath = PathTools.Combine(config.WebRoot, "Daemon.StaticWebServer.zip");
+            if (!File.Exists(zippath))
+            {
+                output.WriteLine("Zipping to {0}", zippath);
+                ZipTools.ZipFromFiles(zippath, ExecutableTools.Directory()
+                    , "Daemon.StaticWebServer.exe"
+                    , "SharpDaemon.dll"
+                    , "Nancy.Hosting.Self.dll"
+                    , "Nancy.dll"
+                );
+            }
+            var process = new DaemonProcess(new DaemonProcess.Args
+            {
+                Executable = webserver,
+                Arguments = $"EndPoint={config.WebEP} Root=\"{config.WebRoot}\"",
+            });
+            var reader = new Runner();
+            reader.Run(() =>
+            {
+                var line = process.ReadLine();
+                while (line != null)
+                {
+                    output.WriteLine("< {0}", line);
+                    line = process.ReadLine();
+                }
+            });
+            using (reader)
+            {
+                using (process)
+                {
+                    action();
+                }
+            }
+        }
+
+        public static void Run(Config config, Action<ITestShell> test)
         {
             using (var disposer = new Disposer())
             {
-                var env = new Env();
-
-                Directory.CreateDirectory(ExecutableTools.Relative("WS"));
-
-                var writers = new WriteLineCollection();
-                writers.Add(new ConsoleWriteLine());
-                var log = new StreamWriter(ExecutableTools.Relative(@"WS\log.txt"), true);
-                disposer.Push(log);
-                writers.Add(new TextWriterWriteLine(log));
-                var timed = new TimedWriter(writers);
-                Output.TRACE = new NamedOutput(timed, "TRACE");
-
-                var port = 12333;
-                var ip = "127.0.0.1";
-                var root = ExecutableTools.Relative(@"WS\WS_{0}", TimeTools.Compact(DateTime.Now));
+                Directory.CreateDirectory(config.Root);
 
                 var process = new DaemonProcess(new DaemonProcess.Args
                 {
                     Executable = ExecutableTools.Relative("SharpDaemon.Server.exe"),
-                    Arguments = $"Id=test Daemon={daemon} Port={port} IP={ip} Root=\"{root}\"",
+                    Arguments = $"Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"",
                 });
 
-                var output = new Output(timed);
+                var output = new Output(config.Timed);
                 var named = new NamedOutput(output, "PROCESS");
                 var shell = new TestShell();
                 var reader = new Runner();
@@ -134,7 +185,7 @@ namespace SharpDaemon.Test
                 disposer.Push(writer);
                 disposer.Push(shell);
 
-                test(env, shell);
+                test(shell);
             }
         }
     }

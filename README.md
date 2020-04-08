@@ -44,6 +44,8 @@ dotnet test SharpDaemon.Test --filter FullyQualifiedName~DaemonLoopExitTest
 dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellLoopExitTest
 dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellSystemCountsTest
 dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellRunCmdTest
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellDownloadZipTest
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellDownloadAndRunTest
 #console output for test cases
 dotnet test SharpDaemon.Test -v n
 #run (ctrl+c to exit)
