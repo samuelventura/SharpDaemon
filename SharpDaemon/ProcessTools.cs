@@ -3,21 +3,24 @@ using System.Diagnostics;
 
 namespace SharpDaemon
 {
-    public class DaemonProcess : Disposable
+    public class DaemonProcess : Disposable, IReadLine, IWriteLine
     {
         private readonly Process process;
         private readonly DateTime start;
         private readonly int id;
         private readonly string name;
+        private readonly int wait;
 
         public class Args
         {
             public string Executable { get; set; }
             public string Arguments { get; set; }
+            public int KillDelay { get; set; }
         }
 
         public DaemonProcess(Args args)
         {
+            wait = args.KillDelay;
             process = new Process();
             process.StartInfo = new ProcessStartInfo()
             {
@@ -41,13 +44,13 @@ namespace SharpDaemon
 
         protected override void Dispose(bool disposed)
         {
-            Tools.Try(() =>
+            ExceptionTools.Try(() =>
             {
                 process.StandardInput.Close();
-                process.WaitForExit(200);
+                process.WaitForExit(wait > 0 ? wait : 5000);
             });
-            Tools.Try(process.Kill);
-            Tools.Try(process.Dispose);
+            ExceptionTools.Try(process.Kill);
+            ExceptionTools.Try(process.Dispose);
         }
 
         public string ReadLine()
@@ -61,14 +64,14 @@ namespace SharpDaemon
             process.StandardInput.Flush();
         }
 
-        public static void Interactive(Shell.IO io, Args args)
+        public static void Interactive(IStream stream, Args args)
         {
             using (var disposer = new Disposer())
             {
-                var reader = new Runner(new Runner.Args() { ExceptionHandler = io.OnException, });
+                var reader = new Runner(new Runner.Args() { ExceptionHandler = stream.HandleException, });
                 disposer.Push(reader);
                 var process = new DaemonProcess(args);
-                io.WriteLine("Process {0} created", process.Id);
+                stream.WriteLine("Process {0} created", process.Id);
                 disposer.Push(process);
                 var queue = new LockedQueue<bool>();
                 reader.Run(() =>
@@ -76,14 +79,14 @@ namespace SharpDaemon
                     var line = process.ReadLine();
                     while (line != null)
                     {
-                        io.WriteLine(line);
+                        stream.WriteLine(line);
                         line = process.ReadLine();
                     }
                 });
                 reader.Run(() => queue.Push(true));
                 while (true)
                 {
-                    var line = io.ReadLine(out var eof);
+                    var line = stream.TryReadLine(out var eof);
                     if (eof) Disposable.Trace("EOF");
                     if (eof) return;
                     if (line != null) process.WriteLine(line);

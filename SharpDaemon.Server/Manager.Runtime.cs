@@ -7,7 +7,7 @@ namespace SharpDaemon.Server
         class DaemonRT : Disposable
         {
             private readonly DaemonProcess process;
-            private readonly NamedOutput named;
+            private readonly IOutput named;
             private readonly Runner runner;
             private readonly DaemonDto dto;
             private volatile string status;
@@ -18,7 +18,7 @@ namespace SharpDaemon.Server
             public int Pid { get { return process.Id; } }
             public DaemonDto Dto { get { return dto.Clone(); } }
 
-            public DaemonRT(DaemonDto dto, string root, int delay, Output output)
+            public DaemonRT(DaemonDto dto, string root, int delay, IWriteLine writer)
             {
                 this.delay = delay;
                 this.dto = dto.Clone();
@@ -27,18 +27,19 @@ namespace SharpDaemon.Server
                 {
                     process = new DaemonProcess(new DaemonProcess.Args
                     {
-                        Executable = Tools.Combine(root, dto.Path),
-                        Arguments = string.Format("{0} {1}", dto.Id, dto.Args),
+                        Executable = PathTools.Combine(root, dto.Path),
+                        //id matches [a-zA_Z][a-zA_Z0-9_]*
+                        Arguments = string.Format("Id={0} {1}", dto.Id, dto.Args),
                     });
                     disposer.Push(process);
 
                     status = "Starting...";
                     var name = string.Format("{0}_{1}", dto.Id, process.Id);
-                    named = new NamedOutput(name, output);
+                    named = new Output(new NamedOutput(writer, name));
 
                     runner = new Runner(new Runner.Args
                     {
-                        ExceptionHandler = named.OnException,
+                        ExceptionHandler = named.HandleException,
                         ThreadName = name,
                     });
                     disposer.Push(runner);
@@ -52,8 +53,8 @@ namespace SharpDaemon.Server
 
             protected override void Dispose(bool disposed)
             {
-                Tools.Try(process.Dispose);
-                Tools.Try(runner.Dispose);
+                ExceptionTools.Try(process.Dispose);
+                ExceptionTools.Try(runner.Dispose);
             }
 
             public bool WillRestart()

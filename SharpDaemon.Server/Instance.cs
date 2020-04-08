@@ -14,23 +14,21 @@ namespace SharpDaemon.Server
         public class Args
         {
             public int RestartDelay { get; set; }
-            public string IpAddress { get; set; }
-            public int TcpPort { get; set; }
+            public IPEndPoint EndPoint { get; set; }
             public string DbPath { get; set; }
             public string Downloads { get; set; }
-            public Output Output { get; set; }
+            public IOutput Output { get; set; }
         }
 
         public Instance(Args args)
         {
-            named = new NamedOutput("INSTANCE", args.Output);
+            named = new NamedOutput(args.Output, "INSTANCE");
             using (var disposer = new Disposer())
             {
                 named.WriteLine("DbPath {0}", args.DbPath);
                 named.WriteLine("Downloads {0}", args.Downloads);
                 named.WriteLine("RestartDelay {0}ms", args.RestartDelay);
-                named.WriteLine("IpAddress {0}", args.IpAddress);
-                named.WriteLine("TcpPort {0}", args.TcpPort);
+                named.WriteLine("EndPoint {0}", args.EndPoint);
                 factory = new ShellFactory();
                 factory.Add(new SystemScriptable());
                 factory.Add(new RunnerScriptable(args.Downloads));
@@ -40,16 +38,15 @@ namespace SharpDaemon.Server
                     RestartDelay = args.RestartDelay,
                     Root = args.Downloads,
                     Database = args.DbPath,
-                    Output = named.Output,
+                    Output = args.Output,
                 });
                 disposer.Push(manager);
                 factory.Add(manager);
                 listener = new Listener(new Listener.Args
                 {
-                    IpAddress = args.IpAddress,
                     ShellFactory = factory,
-                    TcpPort = args.TcpPort,
-                    Output = named.Output,
+                    EndPoint = args.EndPoint,
+                    Output = args.Output,
                 });
                 disposer.Push(listener);
                 factory.Add(listener);

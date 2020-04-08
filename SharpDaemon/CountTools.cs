@@ -5,8 +5,9 @@ namespace SharpDaemon
 {
     public static class Counter
     {
+        //292434 years if ++ each usec
         private static readonly object locker = new object();
-        private static readonly Dictionary<Type, int> counts = new Dictionary<Type, int>();
+        private static readonly Dictionary<Type, long> counts = new Dictionary<Type, long>();
 
         public static void Plus(object o)
         {
@@ -28,9 +29,17 @@ namespace SharpDaemon
             }
         }
 
-        public static Dictionary<Type, int> State()
+        public static Dictionary<Type, long> State()
         {
-            lock (locker) return new Dictionary<Type, int>(counts);
+            lock (locker) return new Dictionary<Type, long>(counts);
+        }
+
+        public static long Total()
+        {
+            var state = State();
+            var total = 0L;
+            foreach (var c in state.Values) total += c;
+            return total;
         }
     }
 }

@@ -17,7 +17,7 @@ namespace SharpDaemon.Server
 
         //should only support zip download and folder level commands
         //should prevent any parent folder access
-        public void Execute(Shell.IO io, params string[] tokens)
+        public void Execute(IStream io, params string[] tokens)
         {
             if (tokens[0] == "download")
             {
@@ -58,8 +58,8 @@ namespace SharpDaemon.Server
             if (tokens.Length == 3)
             {
                 var dir = tokens[2];
-                Tools.Assert(Tools.HasDirectChild(downloads, dir), "Directoy not found {0}", dir);
-                path = Tools.Combine(downloads, dir);
+                AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directoy not found {0}", dir);
+                path = PathTools.Combine(downloads, dir);
             }
 
             var total = 0;
@@ -82,21 +82,21 @@ namespace SharpDaemon.Server
         private void ExecuteDelete(IOutput io, params string[] tokens)
         {
             var dir = tokens[2];
-            Tools.Assert(Tools.HasDirectChild(downloads, dir), "Directoy not found {0}", dir);
-            Directory.Delete(Tools.Combine(downloads, dir), true);
+            AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directoy not found {0}", dir);
+            Directory.Delete(PathTools.Combine(downloads, dir), true);
             io.WriteLine("Directory {0} deleted", dir);
         }
 
         private void ExecuteRename(IOutput io, params string[] tokens)
         {
             var dir = tokens[2];
-            Tools.Assert(Tools.HasDirectChild(downloads, dir), "Directoy {0} not found", dir);
-            var path = Tools.Combine(downloads, dir);
+            AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directoy {0} not found", dir);
+            var path = PathTools.Combine(downloads, dir);
 
             var name = tokens[3];
-            Tools.Assert(Tools.IsChildPath(downloads, name), "Invalid new name {0}", name);
-            var npath = Tools.Combine(downloads, name);
-            Tools.Assert(!Directory.Exists(npath), "Directoy {0} already exist", name);
+            AssertTools.True(PathTools.IsChildPath(downloads, name), "Invalid new name {0}", name);
+            var npath = PathTools.Combine(downloads, name);
+            AssertTools.True(!Directory.Exists(npath), "Directoy {0} already exist", name);
 
             Directory.Move(path, npath);
             io.WriteLine("Directory {0} renamed to {1}", dir, name);
@@ -130,8 +130,8 @@ namespace SharpDaemon.Server
                 }
                 var zipdir = zipfile; //do not remove dots
                 var zipdirpath = Path.Combine(downloads, zipdir);
-                Tools.Assert(Tools.IsChildPath(downloads, zipdir), "Invalid directory name {0}", zipdir);
-                Tools.Assert(!Directory.Exists(zipdirpath), "Download directory already exists {0}", zipdir);
+                AssertTools.True(PathTools.IsChildPath(downloads, zipdir), "Invalid directory name {0}", zipdir);
+                AssertTools.True(!Directory.Exists(zipdirpath), "Download directory already exists {0}", zipdir);
                 using (var zip = new ZipArchive(response.GetResponseStream()))
                 {
                     Directory.CreateDirectory(zipdirpath);

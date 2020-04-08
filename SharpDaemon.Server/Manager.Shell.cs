@@ -9,7 +9,7 @@ namespace SharpDaemon.Server
 {
     public partial class Manager : IShell
     {
-        public void Execute(Shell.IO io, params string[] tokens)
+        public void Execute(IStream io, params string[] tokens)
         {
             if (tokens[0] == "daemon")
             {
@@ -79,7 +79,7 @@ namespace SharpDaemon.Server
         {
             var id = tokens[2];
             installed.TryGetValue(id, out var dto);
-            Tools.Assert(dto != null, "Daemon {0} not found", id);
+            AssertTools.True(dto != null, "Daemon {0} not found", id);
             Database.Remove(database, id);
             io.WriteLine("Daemon {0} uninstalled", id);
             ReloadDatabase();
@@ -89,7 +89,7 @@ namespace SharpDaemon.Server
         {
             var id = tokens[2];
             running.TryGetValue(id, out var rt);
-            Tools.Assert(rt != null, "Daemon {0} not found", id);
+            AssertTools.True(rt != null, "Daemon {0} not found", id);
             Process.GetProcessById(rt.Pid).Kill();
             io.WriteLine("Daemon {0} killed", id);
         }
@@ -132,17 +132,17 @@ namespace SharpDaemon.Server
         {
             var id = tokens[2];
             installed.TryGetValue(id, out var dto);
-            Tools.Assert(dto == null, "Daemon {0} already installed", id);
-            Tools.Assert(Regex.IsMatch(id, "[a-zA_Z][a-zA_Z0-9_]*"), "Invalid id {0}", id);
+            AssertTools.True(dto == null, "Daemon {0} already installed", id);
+            AssertTools.True(Regex.IsMatch(id, "[a-zA_Z][a-zA_Z0-9_]*"), "Invalid id {0}", id);
             var exe = tokens[3];
-            Tools.Assert(Tools.IsChildPath(root, exe), "Invalid path {0}", exe);
+            AssertTools.True(PathTools.IsChildPath(root, exe), "Invalid path {0}", exe);
             var args = new StringBuilder();
             for (var i = 0; i < tokens.Length - 4; i++)
             {
                 //single point of control for offset setup it in tokens.Length - 4
                 var arg = tokens[i + 4];
                 if (args.Length > 0) args.Append(" ");
-                Tools.Assert(!arg.Contains("\""), "Invalid arg {0} {1}", i, arg);
+                AssertTools.True(!arg.Contains("\""), "Invalid arg {0} {1}", i, arg);
                 if (arg.Contains(" ")) args.Append("\"");
                 args.Append(arg);
                 if (arg.Contains(" ")) args.Append("\"");
@@ -153,13 +153,13 @@ namespace SharpDaemon.Server
                 Path = tokens[3],
                 Args = args.ToString(),
             };
-            var path = Tools.Combine(root, dto.Path);
-            Tools.Assert(File.Exists(path), "File {0} not found", dto.Path);
+            var path = PathTools.Combine(root, dto.Path);
+            AssertTools.True(File.Exists(path), "File {0} not found", dto.Path);
             Database.Save(database, dto);
             io.WriteLine("Daemon {0} installed as {1}", id, dto.Info("Path|Args"));
             ReloadDatabase();
         }
 
-        private void Execute(IOutput io, Action action) => runner.Run(action, io.OnException);
+        private void Execute(IOutput io, Action action) => runner.Run(action, io.HandleException);
     }
 }

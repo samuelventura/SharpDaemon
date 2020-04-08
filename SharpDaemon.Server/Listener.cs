@@ -9,7 +9,8 @@ namespace SharpDaemon.Server
     {
         private readonly Dictionary<string, ClientRt> clients;
         private readonly ShellFactory factory;
-        private readonly NamedOutput named;
+        private readonly IOutput output;
+        private readonly IOutput named;
         private readonly IPEndPoint endpoint;
         private readonly TcpListener server;
         private readonly Runner accepter;
@@ -17,9 +18,8 @@ namespace SharpDaemon.Server
 
         public class Args
         {
-            public Output Output { get; set; }
-            public int TcpPort { get; set; }
-            public string IpAddress { get; set; }
+            public IOutput Output { get; set; }
+            public IPEndPoint EndPoint { get; set; }
             public ShellFactory ShellFactory { get; set; }
         }
 
@@ -28,22 +28,23 @@ namespace SharpDaemon.Server
         public Listener(Args args)
         {
             factory = args.ShellFactory;
+            output = args.Output;
             clients = new Dictionary<string, ClientRt>();
-            named = new NamedOutput("LISTENER", args.Output);
-            server = new TcpListener(IPAddress.Parse(args.IpAddress), args.TcpPort);
+            named = new NamedOutput(args.Output, "LISTENER");
+            server = new TcpListener(args.EndPoint);
             server.MakeNotInheritable();
             using (var disposer = new Disposer())
             {
                 //push must match dispose order
                 register = new Runner(new Runner.Args
                 {
-                    ExceptionHandler = named.OnException,
+                    ExceptionHandler = named.HandleException,
                     ThreadName = "Register",
                 });
                 disposer.Push(register);
                 accepter = new Runner(new Runner.Args
                 {
-                    ExceptionHandler = named.OnException,
+                    ExceptionHandler = named.HandleException,
                     ThreadName = "Accepter",
                 });
                 disposer.Push(accepter);
@@ -62,7 +63,7 @@ namespace SharpDaemon.Server
 
         protected override void Dispose(bool disposed)
         {
-            Tools.Try(server.Stop);
+            ExceptionTools.Try(server.Stop);
             accepter.Dispose();
             register.Dispose(() =>
             {
@@ -81,7 +82,7 @@ namespace SharpDaemon.Server
                     using (var disposer = new Disposer())
                     {
                         disposer.Push(client);
-                        var rt = new ClientRt(client, named.Output, factory);
+                        var rt = new ClientRt(client, output, factory);
 
                         disposer.Push(rt.Dispose); //ensure cleanup order
                         clients.Add(rt.EndPoint.ToString(), rt);

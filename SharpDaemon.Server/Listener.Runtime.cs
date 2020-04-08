@@ -10,7 +10,7 @@ namespace SharpDaemon.Server
         class ClientRt : Disposable
         {
             private IPEndPoint endpoint;
-            private NamedOutput named;
+            private IOutput output;
             private TcpClient client;
             private DateTime start;
             private DateTime last;
@@ -19,7 +19,7 @@ namespace SharpDaemon.Server
 
             public IPEndPoint EndPoint { get { return endpoint; } }
 
-            public ClientRt(TcpClient client, Output output, ShellFactory factory)
+            public ClientRt(TcpClient client, IWriteLine writer, ShellFactory factory)
             {
                 //client disposed in caller on throw
                 this.client = client;
@@ -30,10 +30,10 @@ namespace SharpDaemon.Server
                     shell = factory.Create();
                     endpoint = client.Client.RemoteEndPoint as IPEndPoint;
                     var name = string.Format("Client_{0}", endpoint);
-                    named = new NamedOutput(name, output);
+                    this.output = new Output(new NamedOutput(writer, name));
                     runner = new Runner(new Runner.Args
                     {
-                        ExceptionHandler = named.OnException,
+                        ExceptionHandler = this.output.HandleException,
                         ThreadName = name,
                     });
                     disposer.Push(runner);
@@ -47,7 +47,7 @@ namespace SharpDaemon.Server
             protected override void Dispose(bool disposed)
             {
                 //no need to close stream (writer and reader)
-                Tools.Try(client.Close);
+                ExceptionTools.Try(client.Close);
                 runner.Dispose();
             }
 
@@ -63,7 +63,7 @@ namespace SharpDaemon.Server
                         case "IP": parts[i] = endpoint.Address.ToString(); break;
                         case "Port": parts[i] = endpoint.Port.ToString(); break;
                         case "Endpoint": parts[i] = endpoint.ToString(); break;
-                        case "Start": parts[i] = Tools.Format(start); break;
+                        case "Start": parts[i] = TimeTools.Format(start); break;
                         case "Idle": parts[i] = IdleTime(); break;
                     }
                 }
@@ -72,23 +72,30 @@ namespace SharpDaemon.Server
             private string IdleTime()
             {
                 var idle = DateTime.Now - last;
-                return Tools.Format(idle.TotalSeconds);
+                return TimeTools.Format(idle.TotalSeconds);
             }
 
             private void ReadLoop()
             {
-                var stream = client.GetStream();
-                var reader = new StreamReader(stream);
-                var writer = new WriterOutput(new StreamWriter(stream));
-                using (var io = new StreamIO(writer, reader))
+                using (var stream = client.GetStream())
                 {
-                    var line = io.ReadLine();
+                    var reader = new TextReaderReadLine(new StreamReader(stream));
+                    var output = new Output(new TextWriterWriteLine(new StreamWriter(stream)));
+                    ReadLoop(new ShellStream(output, reader));
+                }
+            }
+
+            private void ReadLoop(ShellStream stream)
+            {
+                using (stream)
+                {
+                    var line = stream.ReadLine();
                     while (line != null)
                     {
                         last = DateTime.Now;
-                        named.WriteLine("< {0}", line);
-                        shell.ParseAndExecute(io, line);
-                        line = io.ReadLine();
+                        this.output.WriteLine("< {0}", line);
+                        Shell.ParseAndExecute(shell, stream, line);
+                        line = stream.ReadLine();
                     }
                 }
             }

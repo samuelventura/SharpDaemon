@@ -4,7 +4,6 @@ set PATH="C:\Program Files (x86)\GnuWin32\bin";%PATH%
 rem echo %PATH%
 cd %~dp0
 dotnet publish Daemon.StaticWebServer
-dotnet build SharpDaemon.Service
 mkdir Output
 zip -FSrj Output\Daemon.StaticWebServer.zip Daemon.StaticWebServer\bin\Debug\net452\publish
-Daemon.StaticWebServer\bin\Debug\net452\publish\Daemon.StaticWebServer test Endpoint=127.0.0.1:12334 Root="%~dp0Output"
+Daemon.StaticWebServer\bin\Debug\net452\publish\Daemon.StaticWebServer Id=test EndPoint=127.0.0.1:12334 Root="%~dp0Output"

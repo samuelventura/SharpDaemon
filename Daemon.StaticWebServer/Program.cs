@@ -2,41 +2,39 @@
 using Nancy.Hosting.Self;
 using Nancy.Conventions;
 using Nancy;
+using SharpDaemon;
 
-namespace SharpDaemon.Test.Daemon
+namespace Daemon.StaticWebServer
 {
-    class CliArgs
-    {
-        public string Endpoint { get; set; }
-        public string Root { get; set; }
-    }
-
     class Program
     {
+        class Config
+        {
+            public string Id { get; set; }
+            public string Root { get; set; }
+            public string EndPoint { get; set; }
+        }
+
         static void Main(string[] args)
         {
-            AppDomain.CurrentDomain.UnhandledException += Tools.ExceptionHandler;
+            ExceptionTools.SetupDefaultHandler();
 
-            var cargs = new CliArgs();
+            var config = new Config();
 
-            Stdio.WriteLine("Args {0}", string.Join(" ", args));
+            Stdio.WriteLine("Args {0} {1}", args.Length, string.Join(" ", args));
 
-            var id = args[0]; //string matching [a-zA_Z][a-zA_Z0-9_]*
-
-            Stdio.WriteLine("Arg 0 {0}", id);
-
-            for (var i = 1; i < args.Length; i++)
+            for (var i = 0; i < args.Length; i++)
             {
                 Stdio.WriteLine("Arg {0} {1}", i, args[i]);
 
-                Tools.SetProperty(cargs, args[i]);
+                ConfigTools.SetProperty(config, args[i]);
             }
 
-            Tools.Assert(!string.IsNullOrWhiteSpace(cargs.Endpoint), "Missing endpoint");
-            Tools.Assert(!string.IsNullOrWhiteSpace(cargs.Root), "Missing root");
+            AssertTools.NotEmpty(config.EndPoint, "Missing endpoint");
+            AssertTools.NotEmpty(config.Root, "Missing root");
 
-            var uri = new Uri(string.Format("http://{0}", cargs.Endpoint));
-            var host = new NancyHost(new Bootstrapper() { Root = cargs.Root }, uri);
+            var uri = new Uri(string.Format("http://{0}", config.EndPoint));
+            var host = new NancyHost(new Bootstrapper() { Root = config.Root }, uri);
             using (host)
             {
                 host.Start();

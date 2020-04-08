@@ -41,6 +41,17 @@ namespace SharpDaemon
         private readonly object locker = new object();
         private readonly Queue<T> queue = new Queue<T>();
 
+        public void Push(IEnumerable<T> ts)
+        {
+            lock (locker)
+            {
+                foreach (var t in ts)
+                    queue.Enqueue(t);
+
+                Monitor.Pulse(locker);
+            }
+        }
+
         public void Push(T t)
         {
             lock (locker)
