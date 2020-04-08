@@ -68,33 +68,36 @@ namespace SharpDaemon
 
         public static void Interactive(IStream stream, Args args)
         {
-            using (var disposer = new Disposer())
+            var reader = new Runner(new Runner.Args() { ExceptionHandler = stream.HandleException, });
+            using (reader)
             {
-                var reader = new Runner(new Runner.Args() { ExceptionHandler = stream.HandleException, });
-                disposer.Push(reader);
                 var process = new DaemonProcess(args);
-                stream.WriteLine("Process {0} has started", process.Id);
-                disposer.Push(process);
-                var queue = new LockedQueue<bool>();
-                reader.Run(() =>
+                //eof below must close process immediatelly
+                //to ensure exited message happens after real exit
+                using (process)
                 {
-                    var line = process.ReadLine();
-                    while (line != null)
+                    stream.WriteLine("Process {0} has started", process.Id);
+                    var queue = new LockedQueue<bool>();
+                    reader.Run(() =>
                     {
-                        stream.WriteLine(line);
-                        line = process.ReadLine();
+                        var line = process.ReadLine();
+                        while (line != null)
+                        {
+                            stream.WriteLine(line);
+                            line = process.ReadLine();
+                        }
+                        Output.Trace("EOF output < process");
+                    });
+                    reader.Run(() => queue.Push(true));
+                    while (true)
+                    {
+                        //non blocking readline needed to notice reader exit
+                        var line = stream.TryReadLine(out var eof);
+                        if (eof) Output.Trace("EOF input > process");
+                        if (eof) break;
+                        if (line != null) process.WriteLine(line);
+                        if (queue.Pop(1, false)) break;
                     }
-                    Output.Trace("EOF output < process");
-                });
-                reader.Run(() => queue.Push(true));
-                while (true)
-                {
-                    //non blocking readline needed to notice reader exit
-                    var line = stream.TryReadLine(out var eof);
-                    if (eof) Output.Trace("EOF input > process");
-                    if (eof) break;
-                    if (line != null) process.WriteLine(line);
-                    if (queue.Pop(1, false)) break;
                 }
                 //previous loop may swallow exit! by feeding it to process
                 //unit test should wait for syncing message below before exit!

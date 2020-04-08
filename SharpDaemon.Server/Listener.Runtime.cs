@@ -9,13 +9,13 @@ namespace SharpDaemon.Server
     {
         class ClientRt : Disposable
         {
-            private IPEndPoint endpoint;
-            private IOutput output;
-            private TcpClient client;
+            private readonly IPEndPoint endpoint;
+            private readonly IOutput output;
+            private readonly TcpClient client;
+            private readonly Runner runner;
+            private readonly Shell shell;
             private DateTime start;
             private DateTime last;
-            private Runner runner;
-            private Shell shell;
 
             public IPEndPoint EndPoint { get { return endpoint; } }
 
@@ -69,6 +69,7 @@ namespace SharpDaemon.Server
                 }
                 return string.Join("|", parts);
             }
+
             private string IdleTime()
             {
                 var idle = DateTime.Now - last;
@@ -95,7 +96,7 @@ namespace SharpDaemon.Server
                     while (line != null)
                     {
                         last = DateTime.Now;
-                        this.output.WriteLine("< {0}", line);
+                        output.WriteLine("< {0}", line);
                         Shell.ParseAndExecute(shell, stream, line);
                         line = stream.ReadLine();
                     }
