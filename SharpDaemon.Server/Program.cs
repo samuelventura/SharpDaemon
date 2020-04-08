@@ -47,7 +47,7 @@ namespace SharpDaemon.Server
             var writers = new WriteLineCollection();
             if (!config.Daemon) writers.Add(new ConsoleWriteLine());
             var timed = new TimedWriter(writers);
-            if (!config.Daemon) Disposable.Debug = new NamedOutput(timed, "DISPOSE");
+            if (!config.Daemon) Output.TRACE = new NamedOutput(timed, "TRACE");
 
             var named = new NamedOutput(timed, "STDIN");
 
@@ -88,7 +88,7 @@ namespace SharpDaemon.Server
                     while (line != null)
                     {
                         named.WriteLine("> {0}", line);
-                        if ("exit" == line) break;
+                        if ("exit!" == line) break;
                         line = Stdio.ReadLine();
                     }
                     Stdio.WriteLine("Stdin closed");
@@ -103,7 +103,7 @@ namespace SharpDaemon.Server
                     while (line != null)
                     {
                         named.WriteLine("> {0}", line);
-                        if ("exit" == line) break;
+                        if ("exit!" == line) break;
                         Shell.ParseAndExecute(shell, stream, line);
                         line = stream.ReadLine();
                     }

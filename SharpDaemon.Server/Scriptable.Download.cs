@@ -58,7 +58,7 @@ namespace SharpDaemon.Server
             if (tokens.Length == 3)
             {
                 var dir = tokens[2];
-                AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directoy not found {0}", dir);
+                AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directory not found {0}", dir);
                 path = PathTools.Combine(downloads, dir);
             }
 
@@ -82,7 +82,7 @@ namespace SharpDaemon.Server
         private void ExecuteDelete(IOutput io, params string[] tokens)
         {
             var dir = tokens[2];
-            AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directoy not found {0}", dir);
+            AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directory {0} not found", dir);
             Directory.Delete(PathTools.Combine(downloads, dir), true);
             io.WriteLine("Directory {0} deleted", dir);
         }
@@ -90,13 +90,13 @@ namespace SharpDaemon.Server
         private void ExecuteRename(IOutput io, params string[] tokens)
         {
             var dir = tokens[2];
-            AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directoy {0} not found", dir);
+            AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directory {0} not found", dir);
             var path = PathTools.Combine(downloads, dir);
 
             var name = tokens[3];
             AssertTools.True(PathTools.IsChildPath(downloads, name), "Invalid new name {0}", name);
             var npath = PathTools.Combine(downloads, name);
-            AssertTools.True(!Directory.Exists(npath), "Directoy {0} already exist", name);
+            AssertTools.True(!Directory.Exists(npath), "Directory {0} already exist", name);
 
             Directory.Move(path, npath);
             io.WriteLine("Directory {0} renamed to {1}", dir, name);

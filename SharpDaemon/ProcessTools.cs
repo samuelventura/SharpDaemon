@@ -47,7 +47,9 @@ namespace SharpDaemon
             ExceptionTools.Try(() =>
             {
                 process.StandardInput.Close();
+                Output.Trace("WaitForExit {0}...", id);
                 process.WaitForExit(wait > 0 ? wait : 5000);
+                Output.Trace("WaitForExit {0}", id);
             });
             ExceptionTools.Try(process.Kill);
             ExceptionTools.Try(process.Dispose);
@@ -71,7 +73,7 @@ namespace SharpDaemon
                 var reader = new Runner(new Runner.Args() { ExceptionHandler = stream.HandleException, });
                 disposer.Push(reader);
                 var process = new DaemonProcess(args);
-                stream.WriteLine("Process {0} created", process.Id);
+                stream.WriteLine("Process {0} has started", process.Id);
                 disposer.Push(process);
                 var queue = new LockedQueue<bool>();
                 reader.Run(() =>
@@ -82,16 +84,21 @@ namespace SharpDaemon
                         stream.WriteLine(line);
                         line = process.ReadLine();
                     }
+                    Output.Trace("EOF output < process");
                 });
                 reader.Run(() => queue.Push(true));
                 while (true)
                 {
+                    //non blocking readline needed to notice reader exit
                     var line = stream.TryReadLine(out var eof);
-                    if (eof) Disposable.Trace("EOF");
-                    if (eof) return;
+                    if (eof) Output.Trace("EOF input > process");
+                    if (eof) break;
                     if (line != null) process.WriteLine(line);
-                    if (queue.Pop(1, false)) return;
+                    if (queue.Pop(1, false)) break;
                 }
+                //previous loop may swallow exit! by feeding it to process
+                //unit test should wait for syncing message below before exit!
+                stream.WriteLine("Process {0} has exited", process.Id);
             }
         }
     }

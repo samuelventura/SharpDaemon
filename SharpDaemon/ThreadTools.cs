@@ -67,7 +67,6 @@ namespace SharpDaemon
             Run(new Command { Action = action });
         }
 
-
         private void Run(Command command)
         {
             //Ideally no push after disposing to avoid holding references to objects
@@ -78,7 +77,7 @@ namespace SharpDaemon
 
         private void Loop()
         {
-            //provide a non throwing handler to avoid getting here
+            //provide a non throwing handler to avoid using try here
             while (!quit) ExceptionTools.Try(Process);
         }
 

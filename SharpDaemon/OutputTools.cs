@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace SharpDaemon
 {
@@ -6,6 +7,22 @@ namespace SharpDaemon
 
     public class Output : IOutput
     {
+        public static IWriteLine TRACE;
+
+        public static void Trace(string format, params object[] args)
+        {
+            if (TRACE != null)
+            {
+                var text = TextTools.Format(format, args);
+                var thread = Thread.CurrentThread;
+                TRACE.WriteLine("Thread:{0}:{1} {2}"
+                    , thread.ManagedThreadId
+                    , thread.Name
+                    , text
+                );
+            }
+        }
+
         private readonly IWriteLine writer;
 
         public Output(IWriteLine writer)

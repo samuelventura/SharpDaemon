@@ -26,7 +26,7 @@ namespace SharpDaemon.Test
 
     interface ITestShell
     {
-        void Execute(params string[] tokens);
+        void Execute(string line);
         void WaitFor(int toms, string format, params object[] args);
     }
 
@@ -56,9 +56,8 @@ namespace SharpDaemon.Test
             }
         }
 
-        public void Execute(params string[] tokens)
+        public void Execute(string line)
         {
-            var line = string.Join(" ", tokens);
             output.Push(line);
         }
 
@@ -86,17 +85,19 @@ namespace SharpDaemon.Test
             {
                 var env = new Env();
 
+                Directory.CreateDirectory(ExecutableTools.Relative("WS"));
+
                 var writers = new WriteLineCollection();
                 writers.Add(new ConsoleWriteLine());
-                var log = new StreamWriter(ExecutableTools.Relative("log.txt"), true);
+                var log = new StreamWriter(ExecutableTools.Relative(@"WS\log.txt"), true);
                 disposer.Push(log);
                 writers.Add(new TextWriterWriteLine(log));
                 var timed = new TimedWriter(writers);
-                Disposable.Debug = new NamedOutput(timed, "DISPOSE");
+                Output.TRACE = new NamedOutput(timed, "TRACE");
 
                 var port = 12333;
                 var ip = "127.0.0.1";
-                var root = ExecutableTools.Relative("WS_{0}", TimeTools.Compact(DateTime.Now));
+                var root = ExecutableTools.Relative(@"WS\WS_{0}", TimeTools.Compact(DateTime.Now));
 
                 var process = new DaemonProcess(new DaemonProcess.Args
                 {

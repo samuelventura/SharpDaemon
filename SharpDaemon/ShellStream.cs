@@ -9,6 +9,7 @@ namespace SharpDaemon
         private readonly IOutput output;
         private readonly IReadLine reader;
         private readonly Runner runner;
+        private volatile bool closed;
 
         public ShellStream(IOutput output, IReadLine reader)
         {
@@ -16,7 +17,7 @@ namespace SharpDaemon
             this.reader = reader;
             runner = new Runner();
             runner.Run(ReadLoop);
-            runner.Run(() => queue.Push(newline));
+            runner.Run(AfterLoop);
         }
 
         //reader externally disposed before this
@@ -25,18 +26,27 @@ namespace SharpDaemon
             runner.Dispose();
         }
 
+        //must keep returning null after reader closed
+        //to ensure next readline returns null after nested reads
         public string ReadLine()
         {
+            if (closed) return null;
             var line = queue.Pop(1, null);
             while (line == null) line = queue.Pop(1, null);
+            if (line == newline) closed = true;
             if (line == newline) return null;
             return line;
         }
 
+        //must keep returning null after reader closed
+        //to ensure next readline returns null after nested reads
         public string TryReadLine(out bool eof)
         {
+            eof = true;
+            if (closed) return null;
             eof = false;
             var line = queue.Pop(1, null);
+            if (line == newline) closed = true;
             if (line != newline) return line;
             eof = true;
             return null;
@@ -54,6 +64,11 @@ namespace SharpDaemon
                 queue.Push(line);
                 line = reader.ReadLine();
             }
+        }
+
+        private void AfterLoop()
+        {
+            queue.Push(newline);
         }
     }
 }

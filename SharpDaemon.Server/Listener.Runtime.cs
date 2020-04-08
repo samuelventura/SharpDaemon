@@ -30,10 +30,10 @@ namespace SharpDaemon.Server
                     shell = factory.Create();
                     endpoint = client.Client.RemoteEndPoint as IPEndPoint;
                     var name = string.Format("Client_{0}", endpoint);
-                    this.output = new Output(new NamedOutput(writer, name));
+                    output = new Output(new NamedOutput(writer, name));
                     runner = new Runner(new Runner.Args
                     {
-                        ExceptionHandler = this.output.HandleException,
+                        ExceptionHandler = output.HandleException,
                         ThreadName = name,
                     });
                     disposer.Push(runner);
@@ -77,17 +77,19 @@ namespace SharpDaemon.Server
 
             private void ReadLoop()
             {
-                using (var stream = client.GetStream())
+                using (client)
                 {
+                    var stream = client.GetStream();
                     var reader = new TextReaderReadLine(new StreamReader(stream));
                     var output = new Output(new TextWriterWriteLine(new StreamWriter(stream)));
-                    ReadLoop(new ShellStream(output, reader));
+                    ReadLoop(client, new ShellStream(output, reader));
                 }
             }
 
-            private void ReadLoop(ShellStream stream)
+            private void ReadLoop(TcpClient client, ShellStream stream)
             {
-                using (stream)
+                using (stream) //shell stream runner last
+                using (client) //client first
                 {
                     var line = stream.ReadLine();
                     while (line != null)

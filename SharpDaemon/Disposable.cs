@@ -18,7 +18,6 @@ namespace SharpDaemon
             public override string ToString() => $"{Id}:{Name}";
         }
 
-        public static IWriteLine Debug;
         private static readonly LockedSet<object> undisposed = new LockedSet<object>();
         public static int Undisposed { get { return undisposed.Count; } }
         private readonly ThreadInfo thread = new ThreadInfo();
@@ -67,11 +66,12 @@ namespace SharpDaemon
 
         private void Log(string format, params object[] args)
         {
-            if (Debug != null)
+            var writer = Output.TRACE;
+            if (writer != null)
             {
                 var text = TextTools.Format(format, args);
                 var thread = Thread.CurrentThread;
-                Debug.WriteLine("Thread:{0}:{1} Disposable:{2}:{3} {4}"
+                writer.WriteLine("Thread:{0}:{1} Disposable:{2}:{3} {4}"
                     , thread.ManagedThreadId
                     , thread.Name
                     , GetType()
@@ -82,19 +82,5 @@ namespace SharpDaemon
         }
 
         protected abstract void Dispose(bool disposed);
-
-        public static void Trace(string format, params object[] args)
-        {
-            if (Debug != null)
-            {
-                var text = TextTools.Format(format, args);
-                var thread = Thread.CurrentThread;
-                Debug.WriteLine("Thread:{0}:{1} {2}"
-                    , thread.ManagedThreadId
-                    , thread.Name
-                    , text
-                );
-            }
-        }
     }
 }

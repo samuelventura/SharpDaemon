@@ -37,15 +37,20 @@ Daemons can only be installed into the workspace by:
 dotnet clean SharpDaemon -c Release
 dotnet pack SharpDaemon -c Release
 dotnet publish SharpDaemon.Service -c Release
-#cross platform test cases
+#test cases (some may depend on static web server DebugDaemons.bat)
+#run $env:REPO=($pwd).path before launching tests
 dotnet test SharpDaemon.Test
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~DaemonLoopExitTest
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellLoopExitTest
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellSystemCountsTest
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellRunCmdTest
 #console output for test cases
 dotnet test SharpDaemon.Test -v n
 #run (ctrl+c to exit)
 #restart delay defaults to 5000ms
 #tcp port defaults to 22333
 #ip defaults to 0.0.0.0
-dotnet run -p SharpDaemon.Server -- port=12333
+dotnet run -p SharpDaemon.Server -- Port=12333
 #install relative to downloads
 #quote command tokens containing spaces with `
 daemon uninstall sample
@@ -58,5 +63,7 @@ daemon install sample ..\..\SharpDaemon.Test.Daemon.exe DelayMs=5000
 - [ ] Improve documentation and samples
 - [ ] Provide working URLs in samples above
 - [ ] Implement secure connection
+- [ ] Improve test coverage
+
 
 
