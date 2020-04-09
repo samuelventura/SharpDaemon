@@ -47,9 +47,12 @@ namespace SharpDaemon
             ExceptionTools.Try(() =>
             {
                 process.StandardInput.Close();
-                Output.Trace("WaitForExit {0}...", id);
-                process.WaitForExit(wait > 0 ? wait : 5000);
-                Output.Trace("WaitForExit {0}", id);
+                var to = wait > 0 ? wait : 5000;
+                Output.Trace("WaitForExit {0} {1}ms...", id, to);
+                var start = DateTime.Now;
+                process.WaitForExit(to);
+                var elapsed = DateTime.Now - start;
+                Output.Trace("WaitForExit {0} {1:0}ms", id, elapsed.TotalMilliseconds);
             });
             ExceptionTools.Try(process.Kill);
             ExceptionTools.Try(process.Dispose);

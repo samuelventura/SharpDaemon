@@ -30,7 +30,7 @@ namespace SharpDaemon.Server
                     shell = factory.Create();
                     endpoint = client.Client.RemoteEndPoint as IPEndPoint;
                     var name = string.Format("Client_{0}", endpoint);
-                    output = new Output(new NamedOutput(writer, name));
+                    output = new NamedOutput(writer, name);
                     runner = new Runner(new Runner.Args
                     {
                         ExceptionHandler = output.HandleException,

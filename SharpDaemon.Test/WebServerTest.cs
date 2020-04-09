@@ -3,73 +3,8 @@ using NUnit.Framework;
 
 namespace SharpDaemon.Test
 {
-    public class DaemonServerTest
+    public class WebServerTest
     {
-        [Test]
-        public void DaemonLoopExitTest()
-        {
-            using (var config = new Config())
-            {
-                config.Daemon = true;
-                TestTools.Run(config, (shell) =>
-                {
-                    shell.WaitFor(400, @"Stdin loop...");
-                    shell.Execute("exit!");
-                    shell.WaitFor(400, @"Stdin closed");
-                });
-            }
-        }
-
-        [Test]
-        public void ShellLoopExitTest()
-        {
-            using (var config = new Config())
-            {
-                TestTools.Run(config, (shell) =>
-                {
-                    shell.WaitFor(400, @"Stdin loop...");
-                    shell.Execute(@"exit!");
-                    shell.WaitFor(400, @"Stdin closed");
-                });
-            }
-        }
-
-        [Test]
-        public void ShellSystemCountsTest()
-        {
-            using (var config = new Config())
-            {
-                TestTools.Run(config, (shell) =>
-                {
-                    shell.Execute(@"system counts");
-                    shell.WaitFor(400, @"\d+ total counts");
-                    shell.WaitFor(400, @"\d+ total undisposed");
-                });
-            }
-        }
-
-        [Test]
-        public void ShellRunCmdTest()
-        {
-            using (var config = new Config())
-            {
-                TestTools.Run(config, (shell) =>
-                {
-                    shell.Execute(@"run cmd.exe");
-                    shell.WaitFor(400, @"Process \d+ has started");
-                    shell.WaitFor(400, @"Microsoft Corporation");
-                    shell.Execute(@"dir");
-                    shell.WaitFor(400, @"\d+ File");
-                    shell.WaitFor(400, @"\d+ Dir");
-                    shell.Execute(@"exit"); //cmd.exe
-                                            //prevent swallowing of exit!
-                    shell.WaitFor(400, @"Process \d+ has exited");
-                    shell.Execute(@"exit!"); //shell
-                    shell.WaitFor(400, @"Stdin closed");
-                });
-            }
-        }
-
         [Test]
         public void ShellDownloadZipTest()
         {
@@ -77,7 +12,7 @@ namespace SharpDaemon.Test
             {
                 TestTools.Web(config, () =>
                 {
-                    TestTools.Run(config, (shell) =>
+                    TestTools.Shell(config, (shell) =>
                     {
                         shell.Execute($@"download zip http://{config.WebEP}/Daemon.StaticWebServer.zip");
                         shell.WaitFor(1200, @"Downloaded to Daemon.StaticWebServer.zip"); //first takes longer
@@ -110,22 +45,7 @@ namespace SharpDaemon.Test
                         shell.WaitFor(400, @"Directory NONEXISTING not found");
                         shell.Execute(@"download rename Daemon.StaticWebServer.zip ./NEWNAME");
                         shell.WaitFor(400, @"Invalid new name ./NEWNAME");
-                    });
-                });
-            }
-        }
-
-        [Test]
-        public void ShellDownloadAndRunTest()
-        {
-            using (var config = new Config())
-            {
-                TestTools.Web(config, () =>
-                {
-                    TestTools.Run(config, (shell) =>
-                    {
-                        shell.Execute($@"download zip http://{config.WebEP}/Daemon.StaticWebServer.zip");
-                        shell.WaitFor(1200, @"Downloaded to Daemon.StaticWebServer.zip"); //first takes longer
+                        //create daemon webserver
                         shell.Execute(@"download rename Daemon.StaticWebServer.zip StaticWebServer");
                         shell.WaitFor(400, @"Directory Daemon.StaticWebServer.zip renamed to StaticWebServer");
                         shell.Execute($@"daemon install web StaticWebServer\Daemon.StaticWebServer.exe EndPoint=127.0.0.1:12335 Root={config.WebRoot}");

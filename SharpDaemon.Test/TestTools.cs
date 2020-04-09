@@ -1,6 +1,9 @@
 using System;
 using System.IO;
+using System.Diagnostics;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using NUnit.Framework;
 
 namespace SharpDaemon.Test
 {
@@ -18,8 +21,9 @@ namespace SharpDaemon.Test
         public IWriteLine Timed;
         private StreamWriter log;
 
-        public Config()
+        public Config(bool daemon = false)
         {
+            Daemon = daemon;
             Root = ExecutableTools.Relative(@"WS");
             WebRoot = ExecutableTools.Relative(@"WS\Web");
             WebIP = "127.0.0.1";
@@ -37,7 +41,12 @@ namespace SharpDaemon.Test
             log = new StreamWriter(logfile, true);
             writers.Add(new TextWriterWriteLine(log));
             Timed = new TimedWriter(writers);
-            Output.TRACE = new NamedOutput(Timed, "TRACE");
+            var pid = Process.GetCurrentProcess().Id;
+            Output.TRACE = new NamedOutput(Timed, string.Format("TRACE_{0}", pid));
+            writers.WriteLine(string.Empty); //separating line
+            Output.Trace("Test case {0} starting...", TestContext.CurrentContext.Test.FullName);
+            //System.InvalidOperationException : This property has already been set and cannot be modified.
+            //Thread.CurrentThread.Name = "NUnit";
         }
 
         public string WebEP { get { return $"{WebIP}:{WebPort}"; } }
@@ -104,6 +113,95 @@ namespace SharpDaemon.Test
 
     class TestTools
     {
+        public static void Client(Config config, Action<ITestShell, string> action)
+        {
+            using (var disposer = new Disposer())
+            {
+                var client = new TcpClient(config.ShellIP, config.ShellPort);
+                var endpoint = client.Client.LocalEndPoint;
+                var stream = client.GetStream();
+
+                var output = new Output(config.Timed);
+                var named = new NamedOutput(output, string.Format("SOCKET_{0} <", endpoint));
+                var shell = new TestShell();
+                var reader = new Runner();
+                var writer = new Runner();
+                reader.Run(() =>
+                {
+                    var read = new StreamReader(stream);
+                    var line = read.ReadLine();
+                    while (line != null)
+                    {
+                        named.WriteLine(line);
+                        shell.WriteLine(line);
+                        line = read.ReadLine();
+                    }
+                });
+                writer.Run(() =>
+                {
+                    var write = new StreamWriter(stream);
+                    var line = shell.ReadLine();
+                    while (line != null)
+                    {
+                        write.WriteLine(line);
+                        write.Flush();
+                        line = shell.ReadLine();
+                    }
+                });
+                disposer.Push(reader);
+                disposer.Push(client);
+                disposer.Push(writer);
+                disposer.Push(shell);
+
+                action(shell, endpoint.ToString());
+            }
+        }
+
+        public static void Shell(Config config, Action<ITestShell> action)
+        {
+            using (var disposer = new Disposer())
+            {
+                Directory.CreateDirectory(config.Root);
+
+                var process = new DaemonProcess(new DaemonProcess.Args
+                {
+                    Executable = ExecutableTools.Relative("SharpDaemon.Server.exe"),
+                    Arguments = $"Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"",
+                });
+
+                var output = new Output(config.Timed);
+                var named = new NamedOutput(output, string.Format("STDIO_{0} <", process.Id));
+                var shell = new TestShell();
+                var reader = new Runner();
+                var writer = new Runner();
+                reader.Run(() =>
+                {
+                    var line = process.ReadLine();
+                    while (line != null)
+                    {
+                        named.WriteLine(line);
+                        shell.WriteLine(line);
+                        line = process.ReadLine();
+                    }
+                });
+                writer.Run(() =>
+                {
+                    var line = shell.ReadLine();
+                    while (line != null)
+                    {
+                        process.WriteLine(line);
+                        line = shell.ReadLine();
+                    }
+                });
+                disposer.Push(reader);
+                disposer.Push(process);
+                disposer.Push(writer);
+                disposer.Push(shell);
+
+                action(shell);
+            }
+        }
+
         public static void Web(Config config, Action action)
         {
             var output = new NamedOutput(config.Timed, "WEB");
@@ -141,51 +239,6 @@ namespace SharpDaemon.Test
                 {
                     action();
                 }
-            }
-        }
-
-        public static void Run(Config config, Action<ITestShell> test)
-        {
-            using (var disposer = new Disposer())
-            {
-                Directory.CreateDirectory(config.Root);
-
-                var process = new DaemonProcess(new DaemonProcess.Args
-                {
-                    Executable = ExecutableTools.Relative("SharpDaemon.Server.exe"),
-                    Arguments = $"Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"",
-                });
-
-                var output = new Output(config.Timed);
-                var named = new NamedOutput(output, "PROCESS");
-                var shell = new TestShell();
-                var reader = new Runner();
-                var writer = new Runner();
-                reader.Run(() =>
-                {
-                    var line = process.ReadLine();
-                    while (line != null)
-                    {
-                        named.WriteLine(line);
-                        shell.WriteLine(line);
-                        line = process.ReadLine();
-                    }
-                });
-                writer.Run(() =>
-                {
-                    var line = shell.ReadLine();
-                    while (line != null)
-                    {
-                        process.WriteLine(line);
-                        line = shell.ReadLine();
-                    }
-                });
-                disposer.Push(reader);
-                disposer.Push(process);
-                disposer.Push(writer);
-                disposer.Push(shell);
-
-                test(shell);
             }
         }
     }

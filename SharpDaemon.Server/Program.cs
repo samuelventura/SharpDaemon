@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Threading;
+using System.Diagnostics;
 
 namespace SharpDaemon.Server
 {
@@ -22,6 +23,7 @@ namespace SharpDaemon.Server
         {
 
             ExceptionTools.SetupDefaultHandler();
+            Thread.CurrentThread.Name = "Main";
 
             var config = new Config();
 
@@ -45,9 +47,13 @@ namespace SharpDaemon.Server
             AssertTools.Ip(config.IP, "Invalid IP");
 
             var writers = new WriteLineCollection();
-            if (!config.Daemon) writers.Add(new ConsoleWriteLine());
             var timed = new TimedWriter(writers);
-            if (!config.Daemon) Output.TRACE = new NamedOutput(timed, "TRACE");
+            if (!config.Daemon)
+            {
+                writers.Add(new ConsoleWriteLine());
+                var pid = Process.GetCurrentProcess().Id;
+                Output.TRACE = new NamedOutput(timed, string.Format("TRACE_{0}", pid));
+            }
 
             var named = new NamedOutput(timed, "STDIN");
 

@@ -34,8 +34,8 @@ namespace SharpDaemon.Server
                     disposer.Push(process);
 
                     status = "Starting...";
-                    var name = string.Format("{0}_{1}", dto.Id, process.Id);
-                    named = new Output(new NamedOutput(writer, name));
+                    var name = string.Format("DAEMON {0}_{1}", dto.Id, process.Id);
+                    named = new NamedOutput(writer, name);
 
                     runner = new Runner(new Runner.Args
                     {

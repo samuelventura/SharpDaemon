@@ -40,12 +40,9 @@ dotnet publish SharpDaemon.Service -c Release
 #test cases (some may depend on static web server DebugDaemons.bat)
 #run $env:REPO=($pwd).path before launching tests
 dotnet test SharpDaemon.Test
-dotnet test SharpDaemon.Test --filter FullyQualifiedName~DaemonLoopExitTest
-dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellLoopExitTest
-dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellSystemCountsTest
-dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellRunCmdTest
-dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellDownloadZipTest
-dotnet test SharpDaemon.Test --filter FullyQualifiedName~ShellDownloadAndRunTest
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~BasicTest
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~RunCmdTest
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~WebServerTest
 #console output for test cases
 dotnet test SharpDaemon.Test -v n
 #run (ctrl+c to exit)
