@@ -29,6 +29,8 @@ Daemons can only be installed into the workspace by:
 - VS Code (bash terminal from Git4Win)
 - Net Core SDK 3.1.201
 - Some batch files require [Zip4Win](http://gnuwin32.sourceforge.net/packages/zip.htm)
+- Cert generation require [OpenSSL for Windows](http://gnuwin32.sourceforge.net/packages/openssl.htm)
+- Add C:\Program Files (x86)\GnuWin32\bin to PATH
 
 ## Development CLI
 

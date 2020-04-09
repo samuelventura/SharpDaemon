@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using NUnit.Framework;
 
 namespace SharpDaemon.Test
@@ -43,6 +44,10 @@ namespace SharpDaemon.Test
                     shell.Execute(@"system counts");
                     shell.WaitFor(400, @"\d+ total counts");
                     shell.WaitFor(400, @"\d+ total undisposed");
+                    var passfile = ExecutableTools.Relative("Password.txt");
+                    var password = File.ReadAllText(passfile).Trim();
+                    shell.Execute($@"system password {password}");
+                    shell.WaitFor(400, @"Password changed");
                 });
             }
         }

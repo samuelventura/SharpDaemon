@@ -2,12 +2,14 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SharpDaemon.Server
 {
     public partial class Listener : Disposable
     {
         private readonly Dictionary<string, ClientRt> clients;
+        private readonly X509Certificate2 certificate;
         private readonly ShellFactory factory;
         private readonly IOutput output;
         private readonly IOutput named;
@@ -27,6 +29,8 @@ namespace SharpDaemon.Server
 
         public Listener(Args args)
         {
+            var certfile = ExecutableTools.Relative("DaemonManager.pfx");
+            certificate = new X509Certificate2(certfile, "none");
             factory = args.ShellFactory;
             output = args.Output;
             clients = new Dictionary<string, ClientRt>();
@@ -82,8 +86,7 @@ namespace SharpDaemon.Server
                     using (var disposer = new Disposer())
                     {
                         disposer.Push(client);
-                        var rt = new ClientRt(client, output, factory);
-
+                        var rt = new ClientRt(client, certificate, output, factory);
                         disposer.Push(rt.Dispose); //ensure cleanup order
                         clients.Add(rt.EndPoint.ToString(), rt);
                         rt.Run(() => RemoveClient(rt));

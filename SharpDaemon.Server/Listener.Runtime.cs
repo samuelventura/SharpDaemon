@@ -1,7 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Text;
 using System.Net.Sockets;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SharpDaemon.Server
 {
@@ -9,6 +12,7 @@ namespace SharpDaemon.Server
     {
         class ClientRt : Disposable
         {
+            private readonly X509Certificate2 certificate;
             private readonly IPEndPoint endpoint;
             private readonly IOutput output;
             private readonly TcpClient client;
@@ -19,10 +23,11 @@ namespace SharpDaemon.Server
 
             public IPEndPoint EndPoint { get { return endpoint; } }
 
-            public ClientRt(TcpClient client, IWriteLine writer, ShellFactory factory)
+            public ClientRt(TcpClient client, X509Certificate2 certificate, IWriteLine writer, ShellFactory factory)
             {
                 //client disposed in caller on throw
                 this.client = client;
+                this.certificate = certificate;
                 using (var disposer = new Disposer())
                 {
                     start = DateTime.Now;
@@ -80,9 +85,14 @@ namespace SharpDaemon.Server
             {
                 using (client)
                 {
-                    var stream = client.GetStream();
+                    var stream = new SslStream(client.GetStream());
+                    stream.AuthenticateAsServer(certificate);
                     var reader = new TextReaderReadLine(new StreamReader(stream));
-                    var output = new Output(new TextWriterWriteLine(new StreamWriter(stream)));
+                    var writer = new TextWriterWriteLine(new StreamWriter(stream));
+                    var passfile = ExecutableTools.Relative("Password.txt");
+                    var pwd = File.ReadAllText(passfile).Trim();
+                    if (pwd != reader.ReadLine()) return;
+                    var output = new Output(writer);
                     ReadLoop(client, new ShellStream(output, reader));
                 }
             }

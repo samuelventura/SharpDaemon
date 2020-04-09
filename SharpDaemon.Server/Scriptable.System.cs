@@ -41,6 +41,10 @@ namespace SharpDaemon.Server
                 {
                     ExecuteList(stream, tokens);
                 }
+                if (tokens.Length == 3 && tokens[1] == "password")
+                {
+                    ExecutePassword(stream, tokens);
+                }
             }
             if (tokens[0] == "help")
             {
@@ -51,6 +55,7 @@ namespace SharpDaemon.Server
                 stream.WriteLine("system children");
                 stream.WriteLine("system counts");
                 stream.WriteLine("system list <folder-absolute-path>");
+                stream.WriteLine("system password <new-password>");
             }
         }
 
@@ -73,6 +78,14 @@ namespace SharpDaemon.Server
                 output.WriteLine("{0}", file.Substring(root.Length + 1));
             }
             output.WriteLine("{0} total files", total);
+        }
+
+        private void ExecutePassword(IOutput output, params string[] tokens)
+        {
+            var password = tokens[2];
+            var passfile = ExecutableTools.Relative("Password.txt");
+            File.WriteAllText(passfile, password);
+            output.WriteLine("Password changed");
         }
 
         private void ExecuteCounts(IOutput output, params string[] tokens)

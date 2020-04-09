@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Net.Security;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography.X509Certificates;
 using NUnit.Framework;
 
 namespace SharpDaemon.Test
@@ -117,18 +119,21 @@ namespace SharpDaemon.Test
         {
             using (var disposer = new Disposer())
             {
-                var client = new TcpClient(config.ShellIP, config.ShellPort);
+                var client = SocketTools.ConnectWithTimeout(config.ShellIP, config.ShellPort, 2000);
                 var endpoint = client.Client.LocalEndPoint;
-                var stream = client.GetStream();
-
+                var stream = SocketTools.SSL(client);
+                var read = new StreamReader(stream);
+                var write = new StreamWriter(stream);
                 var output = new Output(config.Timed);
                 var named = new NamedOutput(output, string.Format("SOCKET_{0} <", endpoint));
+                var passfile = ExecutableTools.Relative("Password.txt");
+                var password = File.ReadAllText(passfile).Trim();
+                write.WriteLine(password);
                 var shell = new TestShell();
                 var reader = new Runner();
                 var writer = new Runner();
                 reader.Run(() =>
                 {
-                    var read = new StreamReader(stream);
                     var line = read.ReadLine();
                     while (line != null)
                     {
@@ -139,7 +144,6 @@ namespace SharpDaemon.Test
                 });
                 writer.Run(() =>
                 {
-                    var write = new StreamWriter(stream);
                     var line = shell.ReadLine();
                     while (line != null)
                     {
