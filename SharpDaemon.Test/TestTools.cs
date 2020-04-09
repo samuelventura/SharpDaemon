@@ -23,11 +23,11 @@ namespace SharpDaemon.Test
         public Config(bool daemon = false)
         {
             Daemon = daemon;
-            Root = ExecutableTools.Relative(@"WS");
-            WebRoot = ExecutableTools.Relative(@"WS\Web");
+            Root = ExecutableTools.Relative(@"Root");
+            WebRoot = ExecutableTools.Relative(@"Root\Web");
             WebIP = "127.0.0.1";
             WebPort = 12334;
-            ShellRoot = ExecutableTools.Relative(@"WS\WS_{0}", TimeTools.Compact(DateTime.Now));
+            ShellRoot = ExecutableTools.Relative(@"Root\Test_{0}", TimeTools.Compact(DateTime.Now));
             ShellIP = "127.0.0.1";
             ShellPort = 12333;
 

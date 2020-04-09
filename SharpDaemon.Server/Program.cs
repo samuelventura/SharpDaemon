@@ -31,7 +31,7 @@ namespace SharpDaemon.Server
             config.Port = 22333;
             config.Delay = 5000;
             config.Timeout = 5000;
-            config.Root = ExecutableTools.Relative("Workspace");
+            config.Root = ExecutableTools.Relative("Root");
 
             Stdio.WriteLine("Args {0} {1}", args.Length, string.Join(" ", args));
 
@@ -57,7 +57,7 @@ namespace SharpDaemon.Server
 
             var named = new NamedOutput(timed, "STDIN");
 
-            named.WriteLine("Workspace {0}", config.Root);
+            named.WriteLine("Root {0}", config.Root);
 
             timeout = config.Timeout;
             var dbpath = Path.Combine(config.Root, "SharpDaemon.LiteDb");

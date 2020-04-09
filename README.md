@@ -13,7 +13,7 @@ A daemon is a well behaved console application that:
   - Write exception message to stdout (Console.WriteLine)
   - Exit with non zero code 
 
-Since many daemon instances can share a single executable the manager will always pass the registered daemon id as the first executing argument for the daemon to self identify (and for proper management of resources, like independent log files, if needed).
+Since many daemon instances can share a single executable the manager will always pass the registered daemon id as the Pid argument for the daemon to self identify (and for proper management of resources, like independent log files, if needed).
 
 Daemons can only be installed into the workspace by:
 
@@ -29,7 +29,7 @@ Daemons can only be installed into the workspace by:
 - VS Code (bash terminal from Git4Win)
 - Net Core SDK 3.1.201
 - Some batch files require [Zip4Win](http://gnuwin32.sourceforge.net/packages/zip.htm)
-- Cert generation require [OpenSSL for Windows](http://gnuwin32.sourceforge.net/packages/openssl.htm)
+- Certificate generation requires [OpenSSL for Windows](http://gnuwin32.sourceforge.net/packages/openssl.htm)
 - Add C:\Program Files (x86)\GnuWin32\bin to PATH
 
 ## Development CLI
@@ -47,24 +47,20 @@ dotnet test SharpDaemon.Test --filter FullyQualifiedName~RunCmdTest
 dotnet test SharpDaemon.Test --filter FullyQualifiedName~WebServerTest
 #console output for test cases
 dotnet test SharpDaemon.Test -v n
-#run (ctrl+c to exit)
-#restart delay defaults to 5000ms
-#tcp port defaults to 22333
-#ip defaults to 0.0.0.0
+#run (type exit! to exit)
+#workspace defaults to Root={EXEDIR}\Root
+#restart delay defaults to Delay=5000ms
+#tcp port defaults to Port=22333
+#ip defaults to IP=0.0.0.0
 dotnet run -p SharpDaemon.Server -- Port=12333
-#install relative to downloads
-#quote command tokens containing spaces with `
-daemon uninstall sample
-daemon install http://127.0.0.1:9999/sample.zip
-daemon install sample ..\..\SharpDaemon.Test.Daemon.exe DelayMs=5000
+#type help for shell commands help
+shell>help
+shell>exit!
 ```
 
 ## TODO
 
 - [ ] Improve documentation and samples
-- [ ] Provide working URLs in samples above
-- [ ] Implement secure connection
+- [ ] Provide useful daemon sample
 - [ ] Improve test coverage
-
-
-
+- [ ] Support Linux

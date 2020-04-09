@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Diagnostics;
 
 namespace SharpDaemon
@@ -106,6 +107,23 @@ namespace SharpDaemon
                 //unit test should wait for syncing message below before exit!
                 stream.WriteLine("Process {0} has exited", process.Id);
             }
+        }
+
+        public static string MakeCli(string[] args, int offset)
+        {
+            var sb = new StringBuilder();
+            for (var i = 0; i < args.Length - offset; i++)
+            {
+                //reject arguments with double quotes
+                //double quote arguments with spaces
+                var arg = args[i + offset];
+                if (sb.Length > 0) sb.Append(" ");
+                AssertTools.True(!arg.Contains("\""), "Invalid arg {0} {1}", i, arg);
+                if (arg.Contains(" ")) sb.Append("\"");
+                sb.Append(arg);
+                if (arg.Contains(" ")) sb.Append("\"");
+            }
+            return sb.ToString();
         }
     }
 }

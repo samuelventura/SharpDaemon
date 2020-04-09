@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Text;
 using System.Management;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
@@ -136,22 +135,11 @@ namespace SharpDaemon.Server
             AssertTools.True(Regex.IsMatch(id, "[a-zA_Z][a-zA_Z0-9_]*"), "Invalid id {0}", id);
             var exe = tokens[3];
             AssertTools.True(PathTools.IsChildPath(root, exe), "Invalid path {0}", exe);
-            var args = new StringBuilder();
-            for (var i = 0; i < tokens.Length - 4; i++)
-            {
-                //single point of control for offset setup it in tokens.Length - 4
-                var arg = tokens[i + 4];
-                if (args.Length > 0) args.Append(" ");
-                AssertTools.True(!arg.Contains("\""), "Invalid arg {0} {1}", i, arg);
-                if (arg.Contains(" ")) args.Append("\"");
-                args.Append(arg);
-                if (arg.Contains(" ")) args.Append("\"");
-            }
             dto = new DaemonDto
             {
                 Id = id,
                 Path = tokens[3],
-                Args = args.ToString(),
+                Args = DaemonProcess.MakeCli(tokens, 4),
             };
             var path = PathTools.Combine(root, dto.Path);
             AssertTools.True(File.Exists(path), "File {0} not found", dto.Path);
