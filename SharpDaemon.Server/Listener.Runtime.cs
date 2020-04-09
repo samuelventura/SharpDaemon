@@ -89,9 +89,12 @@ namespace SharpDaemon.Server
                     stream.AuthenticateAsServer(certificate);
                     var reader = new TextReaderReadLine(new StreamReader(stream));
                     var writer = new TextWriterWriteLine(new StreamWriter(stream));
-                    var passfile = ExecutableTools.Relative("Password.txt");
-                    var pwd = File.ReadAllText(passfile).Trim();
-                    if (pwd != reader.ReadLine()) return;
+                    if (!endpoint.ToString().StartsWith("127.0.0.1"))
+                    {
+                        var passfile = ExecutableTools.Relative("Password.txt");
+                        var password = File.ReadAllText(passfile).Trim();
+                        if (password != reader.ReadLine()) return;
+                    }
                     var output = new Output(writer);
                     ReadLoop(client, new ShellStream(output, reader));
                 }

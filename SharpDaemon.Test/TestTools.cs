@@ -126,9 +126,9 @@ namespace SharpDaemon.Test
                 var write = new StreamWriter(stream);
                 var output = new Output(config.Timed);
                 var named = new NamedOutput(output, string.Format("SOCKET_{0} <", endpoint));
-                var passfile = ExecutableTools.Relative("Password.txt");
-                var password = File.ReadAllText(passfile).Trim();
-                write.WriteLine(password);
+                //var passfile = ExecutableTools.Relative("Password.txt");
+                //var password = File.ReadAllText(passfile).Trim();
+                //write.WriteLine(password);
                 var shell = new TestShell();
                 var reader = new Runner();
                 var writer = new Runner();
