@@ -1,10 +1,7 @@
 using System;
 using System.IO;
 using System.Diagnostics;
-using System.Net.Sockets;
-using System.Net.Security;
 using System.Text.RegularExpressions;
-using System.Security.Cryptography.X509Certificates;
 using NUnit.Framework;
 
 namespace SharpDaemon.Test
@@ -121,7 +118,7 @@ namespace SharpDaemon.Test
             {
                 var client = SocketTools.ConnectWithTimeout(config.ShellIP, config.ShellPort, 2000);
                 var endpoint = client.Client.LocalEndPoint;
-                var stream = SocketTools.SSL(client);
+                var stream = SocketTools.SslWithTimeout(client, 2000);
                 var read = new StreamReader(stream);
                 var write = new StreamWriter(stream);
                 var output = new Output(config.Timed);

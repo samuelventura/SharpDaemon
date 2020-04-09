@@ -32,10 +32,17 @@ namespace SharpDaemon
             return client;
         }
 
-        public static SslStream SSL(TcpClient client)
+        public static SslStream SslWithTimeout(TcpClient client, int timeout)
         {
+            var endpoint = client.Client.RemoteEndPoint;
             var stream = new SslStream(client.GetStream(), false, AcceptAnyCertificate);
-            stream.AuthenticateAsClient(string.Empty);
+            var result = stream.BeginAuthenticateAsClient(string.Empty, null, null);
+            if (!result.AsyncWaitHandle.WaitOne(timeout, true))
+            {
+                ExceptionTools.Try(stream.Dispose);
+                ExceptionTools.Try(client.Close);
+                throw ExceptionTools.Make("Timeout authenticating to {0}", endpoint);
+            }
             return stream;
         }
 
