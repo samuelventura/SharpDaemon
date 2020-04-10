@@ -1,6 +1,6 @@
 ﻿using System;
-using System.IO;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace SharpDaemon
 {
@@ -15,11 +15,7 @@ namespace SharpDaemon
         //https://stackoverflow.com/questions/38790802/determine-operating-system-in-net-core
         public static bool IsWindows()
         {
-            var windir = Environment.GetEnvironmentVariable("windir");
-            if (string.IsNullOrEmpty(windir)) return false;
-            if (windir.Contains(@"\")) return false;
-            if (Directory.Exists(windir)) return false;
-            return true;
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         }
 
         public static string Executable(string format, params object[] args)

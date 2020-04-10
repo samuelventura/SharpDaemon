@@ -45,6 +45,7 @@ namespace SharpDaemon.Test
             Output.TRACE = new NamedOutput(Timed, string.Format("TRACE_{0}", pid));
             writers.WriteLine(string.Empty); //separating line
             Output.Trace("Test case {0} starting...", TestContext.CurrentContext.Test.FullName);
+            Output.Trace("Is Windows {0}", Environ.IsWindows());
             //System.InvalidOperationException : This property has already been set and cannot be modified.
             //Thread.CurrentThread.Name = "NUnit";
         }
@@ -225,6 +226,7 @@ namespace SharpDaemon.Test
                 Executable = Environ.Executable("dotnet"),
                 Arguments = $"\"{webserver}\" EndPoint={config.WebEP} Root=\"{config.WebRoot}\"",
             });
+            Output.Trace("Web process {0} {1} {2} {3}", process.Id, process.Name, process.Info.FileName, process.Info.Arguments);
             var reader = new Runner();
             reader.Run(() =>
             {

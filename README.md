@@ -40,6 +40,9 @@ Daemons can only be installed into the workspace by:
 ## Development CLI
 
 ```bash
+#forced clean
+get-childitem -Include bin -Recurse -force | Remove-Item -Force -Recurse
+get-childitem -Include obj -Recurse -force | Remove-Item -Force -Recurse
 #nuget packing and publishing
 dotnet clean SharpDaemon -c Release
 dotnet pack SharpDaemon -c Release
@@ -68,6 +71,10 @@ shell>exit!
   - OnmiSharp for VSCode worked after installing it
 
 ```bash
+#forced clean
+find -name bin -exec rm -fr {}\:
+find -name obj -exec rm -fr {}\:
+#builds
 dotnet build SharpDaemon -f netstandard2.0
 dotnet build SharpDaemon.Server -f netcoreapp3.1
 #test cases

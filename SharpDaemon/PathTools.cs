@@ -19,13 +19,15 @@ namespace SharpDaemon
         {
             var root = Path.GetFullPath(folder);
             var path = Combine(folder, child);
+            Output.Trace("{0}", path);
             //check there is something after root
             if (path.Length <= root.Length) return false;
             //check root is parent
             if (!path.Contains(root)) return false;
             //check child name contains no navigation leading somewhere else
             //length + 1 to remove path separator as well
-            if (child != path.Substring(root.Length + 1)) return false;
+            //windows path separator \ rejected in favor of /
+            if (child != path.Substring(root.Length + 1).Replace(@"\", @"/")) return false;
             return true;
         }
 
