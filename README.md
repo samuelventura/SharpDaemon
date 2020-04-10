@@ -94,6 +94,13 @@ dotnet run -p SharpDaemon.Server -f netcoreapp3.1 -- Port=12333
 dotnet run -p Daemon.StaticWebServer -f netcoreapp3.1 -- Trace=true EndPoint=127.0.0.1:8899 Root=~
 ```
 
+## Status
+
+- macos listener.stop still blocking even en simplest test and even with net5p2
+- linux shutting down both makes listener.stop work
+- windows netcore rename (with move) zip folder fails (zombie dotnet hosts)
+- windows net462 works
+
 ## TODO
 
 - [ ] Improve documentation and samples
