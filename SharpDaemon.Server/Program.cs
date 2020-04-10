@@ -80,6 +80,7 @@ namespace SharpDaemon.Server
                 Output = output,
                 EndPoint = new IPEndPoint(IPAddress.Parse(config.IP), config.Port),
             });
+            named.WriteLine("Listening on {0}", instance.EndPoint);
             using (var disposer = new Disposer())
             {
                 disposer.Push(Disposed);

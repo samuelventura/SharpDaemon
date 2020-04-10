@@ -62,7 +62,7 @@ shell>help
 shell>exit!
 ```
 
-### Linux Development
+### Linux/MacOS Development
 
 - [Mono Devel](https://www.mono-project.com/download/stable/#download-lin)
   - OnmiSharp for VSCode worked after installing it
@@ -71,12 +71,16 @@ shell>exit!
 dotnet build SharpDaemon -f netstandard2.0
 dotnet build SharpDaemon.Server -f netcoreapp3.1
 #test cases
-dotnet test SharpDaemon.Test
-dotnet test SharpDaemon.Test --filter FullyQualifiedName~BasicTest
-dotnet test SharpDaemon.Test --filter FullyQualifiedName~DaemonLoopExitTest
+dotnet test SharpDaemon.Test -f netcoreapp3.1
+dotnet test SharpDaemon.Test -f netcoreapp3.1 --filter FullyQualifiedName~RunCmdTest
+dotnet test SharpDaemon.Test -f netcoreapp3.1 --filter FullyQualifiedName~BasicTest
+dotnet test SharpDaemon.Test -f netcoreapp3.1 --filter FullyQualifiedName~DaemonLoopExitTest
+dotnet test SharpDaemon.Test -f netcoreapp3.1 --filter FullyQualifiedName~ShellRunCmdTest
+dotnet test SharpDaemon.Test -f netcoreapp3.1 --filter FullyQualifiedName~ClientRunCmdTest
+dotnet test SharpDaemon.Test -f netcoreapp3.1 --filter FullyQualifiedName~ShellLoopExitTest
 #run into testing environment
-SharpDaemon.Test/bin/Debug/netcoreapp3.1/SharpDaemon.Server Port=12333 Root=$PWD/SharpDaemon.Test/bin/Debug/netcoreapp3.1/Root
-SharpDaemon.Test/bin/Debug/netcoreapp3.1/Daemon.StaticWebServer EndPoint=127.0.0.1:12334 Root=$PWD/SharpDaemon.Test/bin/Debug/netcoreapp3.1/Root/Web
+dotnet SharpDaemon.Test/bin/Debug/netcoreapp3.1/SharpDaemon.Server.dll Port=12333 Root=$PWD/SharpDaemon.Test/bin/Debug/netcoreapp3.1/Root
+dotnet SharpDaemon.Test/bin/Debug/netcoreapp3.1/Daemon.StaticWebServer.dll EndPoint=127.0.0.1:12334 Root=$PWD/SharpDaemon.Test/bin/Debug/netcoreapp3.1/Root/Web
 #run samples
 dotnet run -p SharpDaemon.Server -f netcoreapp3.1 -- Port=12333
 #point to http://127.0.0.1:8899/.bashrc (localhost not resolved)

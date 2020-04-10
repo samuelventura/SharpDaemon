@@ -33,7 +33,7 @@ namespace SharpDaemon.Test
                         shell.WaitFor(400, @"0 total files");
                         shell.Execute(@"download list Daemon.StaticWebServer.zip");
                         shell.WaitFor(400, @"0 total directories");
-                        shell.WaitFor(400, @"4 total files");
+                        shell.WaitFor(400, @"3 total files");
                         shell.Execute(@"download delete NONEXISTING");
                         shell.WaitFor(400, @"Directory NONEXISTING not found");
                         //should not allow any navigation like . or ..
@@ -48,8 +48,8 @@ namespace SharpDaemon.Test
                         //create daemon webserver
                         shell.Execute(@"download rename Daemon.StaticWebServer.zip StaticWebServer");
                         shell.WaitFor(400, @"Directory Daemon.StaticWebServer.zip renamed to StaticWebServer");
-                        shell.Execute($@"daemon install web StaticWebServer\Daemon.StaticWebServer.exe EndPoint=127.0.0.1:12335 Root={config.WebRoot}");
-                        shell.WaitFor(400, @"MANAGER Daemon web started Daemon.StaticWebServer\|\d+");
+                        shell.Execute($@"daemon install web StaticWebServer/Daemon.StaticWebServer.dll EndPoint=127.0.0.1:12335 `Root={config.WebRoot}`");
+                        shell.WaitFor(400, @"MANAGER Daemon web started dotnet\|\d+");
                         shell.WaitFor(400, $@"web_\d+ < Serving at http://127.0.0.1:12335");
                         shell.Execute(@"download zip http://127.0.0.1:12335/Daemon.StaticWebServer.zip");
                         shell.WaitFor(400, @"Downloaded to Daemon.StaticWebServer.zip");

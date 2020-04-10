@@ -166,12 +166,11 @@ namespace SharpDaemon.Test
             {
                 Directory.CreateDirectory(config.Root);
 
-                var exefile = Environ.Executable("SharpDaemon.Server");
-                var server = ExecutableTools.Relative(exefile);
+                var server = ExecutableTools.Relative("SharpDaemon.Server.dll");
                 var process = new DaemonProcess(new DaemonProcess.Args
                 {
-                    Executable = server,
-                    Arguments = $"Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"",
+                    Executable = Environ.Executable("dotnet"),
+                    Arguments = $"\"{server}\" Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"",
                 });
                 Output.Trace("Shell process {0} {1} {2} {3}", process.Id, process.Name, process.Info.FileName, process.Info.Arguments);
                 var output = new Output(config.Timed);
@@ -211,22 +210,20 @@ namespace SharpDaemon.Test
         {
             var output = new NamedOutput(config.Timed, "WEB");
             Directory.CreateDirectory(config.WebRoot);
-            var exefile = Environ.Executable("Daemon.StaticWebServer");
-            var webserver = ExecutableTools.Relative(exefile);
+            //Output.Trace("Executable Directory {0}", ExecutableTools.Directory());
+            var webserver = ExecutableTools.Relative("Daemon.StaticWebServer.dll");
             var zippath = PathTools.Combine(config.WebRoot, "Daemon.StaticWebServer.zip");
-            if (!File.Exists(zippath))
-            {
-                output.WriteLine("Zipping to {0}", zippath);
-                ZipTools.ZipFromFiles(zippath, ExecutableTools.Directory()
-                    , exefile
-                    , "Daemon.StaticWebServer.dll"
-                    , "SharpDaemon.dll"
-                );
-            }
+            if (File.Exists(zippath)) File.Delete(zippath);
+            output.WriteLine("Zipping to {0}", zippath);
+            ZipTools.ZipFromFiles(zippath, ExecutableTools.Directory()
+                , "Daemon.StaticWebServer.runtimeconfig.json"
+                , "Daemon.StaticWebServer.dll"
+                , "SharpDaemon.dll"
+            );
             var process = new DaemonProcess(new DaemonProcess.Args
             {
-                Executable = webserver,
-                Arguments = $"EndPoint={config.WebEP} Root=\"{config.WebRoot}\"",
+                Executable = Environ.Executable("dotnet"),
+                Arguments = $"\"{webserver}\" EndPoint={config.WebEP} Root=\"{config.WebRoot}\"",
             });
             var reader = new Runner();
             reader.Run(() =>

@@ -51,7 +51,7 @@ namespace SharpDaemon.Server
                 disposer.Push(listener);
                 factory.Add(listener);
                 endpoint = listener.EndPoint;
-
+                
                 disposer.Push(Dispose); //ensure cleanup order
                 listener.Start();
                 disposer.Clear();
