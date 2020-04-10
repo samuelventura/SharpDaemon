@@ -15,8 +15,11 @@ namespace SharpDaemon
 
         public static void MakeNotInheritable(this TcpListener tcpListener)
         {
-            var handle = tcpListener.Server.Handle;
-            SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+            if (Environ.IsWindows())
+            {
+                var handle = tcpListener.Server.Handle;
+                SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+            }
         }
 
         public static TcpClient ConnectWithTimeout(string ip, int port, int timeout)

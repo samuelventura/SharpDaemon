@@ -23,6 +23,8 @@ namespace SharpDaemon
             }
         }
 
+        public static void Trace(Exception ex) => Trace("{0}", ex);
+
         private readonly IWriteLine writer;
 
         public Output(IWriteLine writer)

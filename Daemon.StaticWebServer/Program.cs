@@ -1,7 +1,6 @@
 ﻿using System;
-using Nancy.Hosting.Self;
-using Nancy.Conventions;
-using Nancy;
+using System.IO;
+using System.Net;
 using SharpDaemon;
 
 namespace Daemon.StaticWebServer
@@ -13,6 +12,7 @@ namespace Daemon.StaticWebServer
             public string Id { get; set; }
             public string Root { get; set; }
             public string EndPoint { get; set; }
+            public bool Trace { get; set; }
         }
 
         static void Main(string[] args)
@@ -30,15 +30,64 @@ namespace Daemon.StaticWebServer
                 ConfigTools.SetProperty(config, args[i]);
             }
 
-            AssertTools.NotEmpty(config.EndPoint, "Missing endpoint");
-            AssertTools.NotEmpty(config.Root, "Missing root");
+            AssertTools.NotEmpty(config.EndPoint, "Missing EndPoint");
+            AssertTools.NotEmpty(config.Root, "Missing Root");
+            if (config.Trace) Output.TRACE = new ConsoleWriteLine();
 
-            var uri = new Uri(string.Format("http://{0}", config.EndPoint));
-            var host = new NancyHost(new Bootstrapper() { Root = config.Root }, uri);
-            using (host)
+            var uri = string.Format("http://{0}/", config.EndPoint);
+            var http = new HttpListener();
+            http.Prefixes.Add(uri);
+            http.Start();
+            var accepter = new Runner(new Runner.Args { ExceptionHandler = Output.Trace });
+            var handler = new Runner(new Runner.Args { ExceptionHandler = Output.Trace });
+            accepter.Run(() =>
             {
-                host.Start();
-                Stdio.WriteLine("Serving at {0}", uri);
+                while (http.IsListening)
+                {
+                    var ctx = http.GetContext();
+                    handler.Run(() =>
+                    {
+                        var request = ctx.Request;
+                        var response = ctx.Response;
+                        var pass = true;
+                        var file = ctx.Request.RawUrl.Substring(1); //remove leading /
+                        if (!PathTools.IsChildPath(config.Root, file)) pass = false;
+                        var path = PathTools.Combine(config.Root, file);
+                        Output.Trace("File {0} {1}", file, path);
+                        if (!File.Exists(path)) pass = false;
+                        if (ctx.Request.HttpMethod != "GET") pass = false;
+                        if (pass)
+                        {
+                            var fi = new FileInfo(path);
+                            var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+                            ctx.Response.StatusCode = (int)HttpStatusCode.OK;
+                            ctx.Response.ContentLength64 = fi.Length;
+                            ctx.Response.ContentType = "application/octet-stream";
+                            var data = new byte[1024];
+                            var count = fs.Read(data, 0, data.Length);
+                            while (count > 0)
+                            {
+                                ctx.Response.OutputStream.Write(data, 0, count);
+                                count = fs.Read(data, 0, data.Length);
+                            }
+                        }
+                        else
+                        {
+                            ctx.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                            ctx.Response.ContentLength64 = 0;
+                        }
+                        ctx.Response.Close();
+                    });
+                }
+            });
+
+            Stdio.WriteLine("Serving at {0}", uri);
+
+            using (var disposer = new Disposer())
+            {
+                disposer.Push(handler);
+                disposer.Push(accepter);
+                disposer.Push(http.Stop);
 
                 var line = Stdio.ReadLine();
                 while (line != null) line = Stdio.ReadLine();
@@ -47,37 +96,6 @@ namespace Daemon.StaticWebServer
             Stdio.WriteLine("Stdin closed");
 
             Environment.Exit(0);
-        }
-
-        class Bootstrapper : DefaultNancyBootstrapper
-        {
-            public string Root;
-
-            protected override void ConfigureConventions(NancyConventions conventions)
-            {
-                base.ConfigureConventions(conventions);
-
-                //relative to root path configured below
-                conventions.StaticContentsConventions.Add(
-                    StaticContentConventionBuilder.AddDirectory("/", ".")
-                );
-            }
-
-            protected override IRootPathProvider RootPathProvider
-            {
-                get { return new CustomRootPathProvider { Root = Root }; }
-            }
-        }
-
-        class CustomRootPathProvider : IRootPathProvider
-        {
-            public string Root;
-
-            //must be an absolute root path
-            public string GetRootPath()
-            {
-                return Root;
-            }
         }
     }
 }

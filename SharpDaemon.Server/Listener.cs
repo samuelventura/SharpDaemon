@@ -67,6 +67,9 @@ namespace SharpDaemon.Server
 
         protected override void Dispose(bool disposed)
         {
+            //netcore linux requires shutdown https://github.com/dotnet/runtime/issues/24513
+            ExceptionTools.Try(() => server.Server.Shutdown(SocketShutdown.Both));
+            //net462 works ok just with stop but requires MakeNotInheritable above
             ExceptionTools.Try(server.Stop);
             accepter.Dispose();
             register.Dispose(() =>

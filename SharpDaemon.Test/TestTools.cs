@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
@@ -24,10 +25,10 @@ namespace SharpDaemon.Test
         {
             Daemon = daemon;
             Root = ExecutableTools.Relative(@"Root");
-            WebRoot = ExecutableTools.Relative(@"Root\Web");
+            WebRoot = PathTools.Combine(Root, "Web");
             WebIP = "127.0.0.1";
             WebPort = 12334;
-            ShellRoot = ExecutableTools.Relative(@"Root\Test_{0}", TimeTools.Compact(DateTime.Now));
+            ShellRoot = PathTools.Combine(Root, "Test_{0}", TimeTools.Compact(DateTime.Now));
             ShellIP = "127.0.0.1";
             ShellPort = 12333;
 
@@ -117,7 +118,7 @@ namespace SharpDaemon.Test
             using (var disposer = new Disposer())
             {
                 var client = SocketTools.ConnectWithTimeout(config.ShellIP, config.ShellPort, 2000);
-                var endpoint = client.Client.LocalEndPoint;
+                var endpoint = client.Client.LocalEndPoint as IPEndPoint;
                 var stream = SocketTools.SslWithTimeout(client, 2000);
                 var read = new StreamReader(stream);
                 var write = new StreamWriter(stream);
@@ -154,7 +155,8 @@ namespace SharpDaemon.Test
                 disposer.Push(writer);
                 disposer.Push(shell);
 
-                action(shell, endpoint.ToString());
+                //netcore linux prints ipv6 in endpoint.tostring
+                action(shell, $"{config.ShellIP}:{endpoint.Port}");
             }
         }
 
@@ -164,12 +166,14 @@ namespace SharpDaemon.Test
             {
                 Directory.CreateDirectory(config.Root);
 
+                var exefile = Environ.Executable("SharpDaemon.Server");
+                var server = ExecutableTools.Relative(exefile);
                 var process = new DaemonProcess(new DaemonProcess.Args
                 {
-                    Executable = ExecutableTools.Relative("SharpDaemon.Server.exe"),
+                    Executable = server,
                     Arguments = $"Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"",
                 });
-
+                Output.Trace("Shell process {0} {1} {2} {3}", process.Id, process.Name, process.Info.FileName, process.Info.Arguments);
                 var output = new Output(config.Timed);
                 var named = new NamedOutput(output, string.Format("STDIO_{0} <", process.Id));
                 var shell = new TestShell();
@@ -207,16 +211,16 @@ namespace SharpDaemon.Test
         {
             var output = new NamedOutput(config.Timed, "WEB");
             Directory.CreateDirectory(config.WebRoot);
-            var webserver = ExecutableTools.Relative(@"Daemon.StaticWebServer.exe");
+            var exefile = Environ.Executable("Daemon.StaticWebServer");
+            var webserver = ExecutableTools.Relative(exefile);
             var zippath = PathTools.Combine(config.WebRoot, "Daemon.StaticWebServer.zip");
             if (!File.Exists(zippath))
             {
                 output.WriteLine("Zipping to {0}", zippath);
                 ZipTools.ZipFromFiles(zippath, ExecutableTools.Directory()
-                    , "Daemon.StaticWebServer.exe"
+                    , exefile
+                    , "Daemon.StaticWebServer.dll"
                     , "SharpDaemon.dll"
-                    , "Nancy.Hosting.Self.dll"
-                    , "Nancy.dll"
                 );
             }
             var process = new DaemonProcess(new DaemonProcess.Args

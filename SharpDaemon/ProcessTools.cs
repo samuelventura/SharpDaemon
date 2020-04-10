@@ -6,6 +6,7 @@ namespace SharpDaemon
 {
     public class DaemonProcess : Disposable, IReadLine, IWriteLine
     {
+        private readonly ProcessStartInfo info;
         private readonly Process process;
         private readonly DateTime start;
         private readonly int id;
@@ -23,7 +24,7 @@ namespace SharpDaemon
         {
             wait = args.KillDelay;
             process = new Process();
-            process.StartInfo = new ProcessStartInfo()
+            info = new ProcessStartInfo()
             {
                 FileName = args.Executable,
                 Arguments = args.Arguments,
@@ -33,6 +34,7 @@ namespace SharpDaemon
                 RedirectStandardOutput = true,
                 RedirectStandardError = false,
             };
+            process.StartInfo = info;
             process.Start();
             id = process.Id;
             name = process.ProcessName;
@@ -42,6 +44,7 @@ namespace SharpDaemon
         public int Id { get { return id; } }
         public string Name { get { return name; } }
         public DateTime Start { get { return start; } }
+        public ProcessStartInfo Info { get { return info; } }
 
         protected override void Dispose(bool disposed)
         {
@@ -51,9 +54,9 @@ namespace SharpDaemon
                 var to = wait > 0 ? wait : 5000;
                 Output.Trace("WaitForExit {0} {1}ms...", id, to);
                 var start = DateTime.Now;
-                process.WaitForExit(to);
+                var exited = process.WaitForExit(to);
                 var elapsed = DateTime.Now - start;
-                Output.Trace("WaitForExit {0} {1:0}ms", id, elapsed.TotalMilliseconds);
+                Output.Trace("WaitForExit {0} {1:0}ms {2}", id, elapsed.TotalMilliseconds, exited);
             });
             ExceptionTools.Try(process.Kill);
             ExceptionTools.Try(process.Dispose);

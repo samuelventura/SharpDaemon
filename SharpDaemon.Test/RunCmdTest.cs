@@ -17,6 +17,7 @@ namespace SharpDaemon.Test
                     shell.Execute(@"run cmd.exe");
                     shell.WaitFor(400, @"Process \d+ has started");
                     shell.WaitFor(400, @"Microsoft Corporation");
+                    shell.Execute(@"cd c:\Users");
                     shell.Execute(@"dir");
                     shell.WaitFor(400, @"\d+ File");
                     shell.WaitFor(400, @"\d+ Dir");
@@ -43,6 +44,7 @@ namespace SharpDaemon.Test
                         client.Execute(@"run cmd.exe");
                         client.WaitFor(400, @"Process \d+ has started");
                         client.WaitFor(400, @"Microsoft Corporation");
+                        client.Execute(@"cd c:\Users");
                         client.Execute(@"dir");
                         client.WaitFor(400, @"\d+ File");
                         client.WaitFor(400, @"\d+ Dir");
@@ -62,7 +64,9 @@ namespace SharpDaemon.Test
                 TestTools.Shell(config, (shell) =>
                 {
                     var tasks = new List<Task>();
-                    for (var i = 0; i < 20; i++)
+                    //dotnet linux in WSL maxes at 6 here
+                    var count = Environ.IsWindows() ? 20 : 6;
+                    for (var i = 0; i < count; i++)
                     {
                         var task = Task.Run(() =>
                         {
@@ -71,6 +75,7 @@ namespace SharpDaemon.Test
                                 client.Execute(@"run cmd.exe");
                                 client.WaitFor(400, @"Process \d+ has started");
                                 client.WaitFor(400, @"Microsoft Corporation");
+                                client.Execute(@"cd c:\Users");
                                 client.Execute(@"dir");
                                 client.WaitFor(400, @"\d+ File");
                                 client.WaitFor(400, @"\d+ Dir");
@@ -81,6 +86,7 @@ namespace SharpDaemon.Test
                         });
                         tasks.Add(task);
                     }
+                    //net462 works for 20 clients and 2000ms wait
                     //AggregateException showing array exceptions for each throwing task (confirmed)
                     AssertTools.True(Task.WaitAll(tasks.ToArray(), 2000), "Timeout waiting tasks");
                 });

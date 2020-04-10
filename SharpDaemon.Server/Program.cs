@@ -42,7 +42,7 @@ namespace SharpDaemon.Server
                 ConfigTools.SetProperty(config, args[i]);
             }
 
-            AssertTools.NotEmpty(config.Root, "Missing root path");
+            AssertTools.NotEmpty(config.Root, "Missing Root path");
             AssertTools.NotEmpty(config.IP, "Missing IP");
             AssertTools.Ip(config.IP, "Invalid IP");
 
@@ -116,6 +116,8 @@ namespace SharpDaemon.Server
                     named.WriteLine("Stdin closed");
                 }
             }
+
+            Environment.Exit(0);
         }
 
         static volatile bool disposed;

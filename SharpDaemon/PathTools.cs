@@ -29,8 +29,9 @@ namespace SharpDaemon
             return true;
         }
 
-        public static string Combine(string folder, string relative)
+        public static string Combine(string folder, string format, params object[] args)
         {
+            var relative = TextTools.Format(format, args);
             var root = Path.GetFullPath(folder);
             return Path.GetFullPath(Path.Combine(root, relative));
         }

@@ -28,9 +28,14 @@ Daemons can only be installed into the workspace by:
 - Windows 10 Pro 64x (Windows only)
 - VS Code (bash terminal from Git4Win)
 - Net Core SDK 3.1.201
-- Some batch files require [Zip4Win](http://gnuwin32.sourceforge.net/packages/zip.htm)
-- Certificate generation requires [OpenSSL for Windows](http://gnuwin32.sourceforge.net/packages/openssl.htm)
-- Add C:\Program Files (x86)\GnuWin32\bin to PATH
+- net462 supporting Windows 7 SP1 (x86 and x64)
+  - [.NET Framework 4.6.2 Download Page](https://dotnet.microsoft.com/download/dotnet-framework/net462)
+  - [Offline Installer](https://www.microsoft.com/en-us/download/details.aspx?id=53344)
+  - [Developer Pack](https://www.microsoft.com/en-us/download/details.aspx?id=53321)
+- GNU Win32
+  - Add C:\Program Files (x86)\GnuWin32\bin to PATH
+  - [Zip for Windown](http://gnuwin32.sourceforge.net/packages/zip.htm)
+  - [OpenSSL for Windows](http://gnuwin32.sourceforge.net/packages/openssl.htm)
 
 ## Development CLI
 
@@ -39,8 +44,7 @@ Daemons can only be installed into the workspace by:
 dotnet clean SharpDaemon -c Release
 dotnet pack SharpDaemon -c Release
 dotnet publish SharpDaemon.Service -c Release
-#test cases (some may depend on static web server DebugDaemons.bat)
-#run $env:REPO=($pwd).path before launching tests
+#test cases
 dotnet test SharpDaemon.Test
 dotnet test SharpDaemon.Test --filter FullyQualifiedName~BasicTest
 dotnet test SharpDaemon.Test --filter FullyQualifiedName~RunCmdTest
@@ -56,6 +60,27 @@ dotnet run -p SharpDaemon.Server -- Port=12333
 #type help for shell commands help
 shell>help
 shell>exit!
+```
+
+### Linux Development
+
+- [Mono Devel](https://www.mono-project.com/download/stable/#download-lin)
+  - OnmiSharp for VSCode worked after installing it
+
+```bash
+dotnet build SharpDaemon -f netstandard2.0
+dotnet build SharpDaemon.Server -f netcoreapp3.1
+#test cases
+dotnet test SharpDaemon.Test
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~BasicTest
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~DaemonLoopExitTest
+#run into testing environment
+SharpDaemon.Test/bin/Debug/netcoreapp3.1/SharpDaemon.Server Port=12333 Root=$PWD/SharpDaemon.Test/bin/Debug/netcoreapp3.1/Root
+SharpDaemon.Test/bin/Debug/netcoreapp3.1/Daemon.StaticWebServer EndPoint=127.0.0.1:12334 Root=$PWD/SharpDaemon.Test/bin/Debug/netcoreapp3.1/Root/Web
+#run samples
+dotnet run -p SharpDaemon.Server -f netcoreapp3.1 -- Port=12333
+#point to http://127.0.0.1:8899/.bashrc (localhost not resolved)
+dotnet run -p Daemon.StaticWebServer -f netcoreapp3.1 -- Trace=true EndPoint=127.0.0.1:8899 Root=~
 ```
 
 ## TODO

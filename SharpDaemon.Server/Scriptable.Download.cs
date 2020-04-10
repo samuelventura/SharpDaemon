@@ -87,6 +87,9 @@ namespace SharpDaemon.Server
             io.WriteLine("Directory {0} deleted", dir);
         }
 
+        //https://stackoverflow.com/questions/18924789/directory-move-access-to-path-is-denied
+        //netcore linux WSL System.IO.IOException: Access to the path
+        //download zip and delete work ok at the same time
         private void ExecuteRename(IOutput io, params string[] tokens)
         {
             var dir = tokens[2];
