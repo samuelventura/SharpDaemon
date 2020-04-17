@@ -25,12 +25,11 @@ namespace SharpDaemon.Server
 
                 using (var disposer = new Disposer())
                 {
-                    var executable = PathTools.Combine(root, dto.Path);
                     process = new DaemonProcess(new DaemonProcess.Args
                     {
-                        Executable = Environ.Executable("dotnet"),
+                        Executable = PathTools.Combine(root, dto.Path),
                         //id matches [a-zA_Z][a-zA_Z0-9_]*
-                        Arguments = string.Format("\"{0}\" Id={1} {2}", executable, dto.Id, dto.Args),
+                        Arguments = string.Format("Id={0} {1}", dto.Id, dto.Args),
                     });
                     disposer.Push(process);
 

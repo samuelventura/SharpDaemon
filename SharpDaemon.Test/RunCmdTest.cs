@@ -15,26 +15,14 @@ namespace SharpDaemon.Test
             {
                 TestTools.Shell(config, (shell) =>
                 {
-                    if (Environ.IsWindows())
-                    {
-                        shell.Execute(@"run cmd.exe");
-                        shell.WaitFor(400, @"Process \d+ has started");
-                        shell.WaitFor(400, @"Microsoft Corporation");
-                        shell.Execute(@"cd c:\Users");
-                        shell.Execute(@"dir");
-                        shell.WaitFor(400, @"\d+ File");
-                        shell.WaitFor(400, @"\d+ Dir");
-                        shell.Execute(@"exit"); //cmd.exe
-                    }
-                    else
-                    {
-                        shell.Execute(@"run bash");
-                        shell.WaitFor(400, @"Process \d+ has started");
-                        shell.Execute(@"cd $HOME");
-                        shell.Execute(@"ls -l");
-                        shell.WaitFor(400, @"total \d+");
-                        shell.Execute(@"exit"); //bash
-                    }
+                    shell.Execute(@"run cmd.exe");
+                    shell.WaitFor(400, @"Process \d+ has started");
+                    shell.WaitFor(400, @"Microsoft Corporation");
+                    shell.Execute(@"cd c:\Users");
+                    shell.Execute(@"dir");
+                    shell.WaitFor(400, @"\d+ File");
+                    shell.WaitFor(400, @"\d+ Dir");
+                    shell.Execute(@"exit"); //cmd.exe
                     shell.WaitFor(400, @"Process \d+ has exited"); //prevent swallowing of exit!
                     shell.Execute(@"exit!"); //shell
                     shell.WaitFor(400, @"Stdin closed");
@@ -58,26 +46,14 @@ namespace SharpDaemon.Test
                         lastEP = endpoint;
                         shell.WaitFor(400, $@"LISTENER Client {lastEP} connected");
 
-                        if (Environ.IsWindows())
-                        {
-                            client.Execute(@"run cmd.exe");
-                            client.WaitFor(400, @"Process \d+ has started");
-                            client.WaitFor(400, @"Microsoft Corporation");
-                            client.Execute(@"cd c:\Users");
-                            client.Execute(@"dir");
-                            client.WaitFor(400, @"\d+ File");
-                            client.WaitFor(400, @"\d+ Dir");
-                            client.Execute(@"exit"); //cmd.exe
-                        }
-                        else
-                        {
-                            client.Execute(@"run bash");
-                            client.WaitFor(400, @"Process \d+ has started");
-                            client.Execute(@"cd $HOME");
-                            client.Execute(@"ls -l");
-                            client.WaitFor(400, @"total \d+");
-                            client.Execute(@"exit"); //bash
-                        }
+                        client.Execute(@"run cmd.exe");
+                        client.WaitFor(400, @"Process \d+ has started");
+                        client.WaitFor(400, @"Microsoft Corporation");
+                        client.Execute(@"cd c:\Users");
+                        client.Execute(@"dir");
+                        client.WaitFor(400, @"\d+ File");
+                        client.WaitFor(400, @"\d+ Dir");
+                        client.Execute(@"exit"); //cmd.exe
 
                         client.WaitFor(400, @"Process \d+ has exited"); //prevent swallowing of exit!
                     });
@@ -94,9 +70,7 @@ namespace SharpDaemon.Test
                 TestTools.Shell(config, (shell) =>
                 {
                     var tasks = new List<Task>();
-                    //netcore linux in WSL maxes at 6 here
-                    //netcoce macosL maxes at 7 here
-                    var count = Environ.IsWindows() ? 20 : 6;
+                    var count = 20;
                     for (var i = 0; i < count; i++)
                     {
                         var task = Task.Run(() =>
@@ -106,26 +80,14 @@ namespace SharpDaemon.Test
 
                             TestTools.Client(config, (client, endpoint) =>
                             {
-                                if (Environ.IsWindows())
-                                {
-                                    client.Execute(@"run cmd.exe");
-                                    client.WaitFor(400, @"Process \d+ has started");
-                                    client.WaitFor(400, @"Microsoft Corporation");
-                                    client.Execute(@"cd c:\Users");
-                                    client.Execute(@"dir");
-                                    client.WaitFor(400, @"\d+ File");
-                                    client.WaitFor(400, @"\d+ Dir");
-                                    client.Execute(@"exit"); //cmd.exe
-                                }
-                                else
-                                {
-                                    client.Execute(@"run bash");
-                                    client.WaitFor(400, @"Process \d+ has started");
-                                    client.Execute(@"cd $HOME");
-                                    client.Execute(@"ls -l");
-                                    client.WaitFor(400, @"total \d+");
-                                    client.Execute(@"exit"); //bash
-                                }
+                                client.Execute(@"run cmd.exe");
+                                client.WaitFor(400, @"Process \d+ has started");
+                                client.WaitFor(400, @"Microsoft Corporation");
+                                client.Execute(@"cd c:\Users");
+                                client.Execute(@"dir");
+                                client.WaitFor(400, @"\d+ File");
+                                client.WaitFor(400, @"\d+ Dir");
+                                client.Execute(@"exit"); //cmd.exe
                                 client.WaitFor(400, @"Process \d+ has exited"); //prevent swallowing of exit!
                                 //throw new Exception("Exception!");
                             });

@@ -2,18 +2,18 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net462</TargetFramework>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Authors>Samuel Ventura</Authors>
     <Description>Windows Daemon Manager Service</Description>
-    <License>https://www.apache.org/licenses/LICENSE-2.0</License>  
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>    
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SharpDaemon\SharpDaemon.csproj"/>  
-    <ProjectReference Include="..\SharpDaemon.Server\SharpDaemon.Server.csproj"/>  
+    <PackageReference Include="System.Configuration" Version="2.0.5" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.7.0" />
+    <ProjectReference Include="..\SharpDaemon\SharpDaemon.csproj" />  
+    <ProjectReference Include="..\SharpDaemon.Server\SharpDaemon.Server.csproj" />  
     <Content Include="..\PostInstall.bat" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\PreUninstall.bat" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

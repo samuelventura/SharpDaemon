@@ -45,7 +45,6 @@ namespace SharpDaemon.Test
             Output.TRACE = new NamedOutput(Timed, string.Format("TRACE_{0}", pid));
             writers.WriteLine(string.Empty); //separating line
             Output.Trace("Test case {0} starting...", TestContext.CurrentContext.Test.FullName);
-            Output.Trace("Is Windows {0}", Environ.IsWindows());
             //System.InvalidOperationException : This property has already been set and cannot be modified.
             //Thread.CurrentThread.Name = "NUnit";
         }
@@ -167,11 +166,10 @@ namespace SharpDaemon.Test
             {
                 Directory.CreateDirectory(config.Root);
 
-                var server = ExecutableTools.Relative("SharpDaemon.Server.dll");
                 var process = new DaemonProcess(new DaemonProcess.Args
                 {
-                    Executable = Environ.Executable("dotnet"),
-                    Arguments = $"\"{server}\" Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"",
+                    Executable = ExecutableTools.Relative("SharpDaemon.Server.exe"),
+                    Arguments = $"Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"",
                 });
                 Output.Trace("Shell process {0} {1} {2} {3}", process.Id, process.Name, process.Info.FileName, process.Info.Arguments);
                 var output = new Output(config.Timed);
@@ -211,20 +209,17 @@ namespace SharpDaemon.Test
         {
             var output = new NamedOutput(config.Timed, "WEB");
             Directory.CreateDirectory(config.WebRoot);
-            //Output.Trace("Executable Directory {0}", ExecutableTools.Directory());
-            var webserver = ExecutableTools.Relative("Daemon.StaticWebServer.dll");
             var zippath = PathTools.Combine(config.WebRoot, "Daemon.StaticWebServer.zip");
             if (File.Exists(zippath)) File.Delete(zippath);
             output.WriteLine("Zipping to {0}", zippath);
             ZipTools.ZipFromFiles(zippath, ExecutableTools.Directory()
-                , "Daemon.StaticWebServer.runtimeconfig.json"
-                , "Daemon.StaticWebServer.dll"
+                , "Daemon.StaticWebServer.exe"
                 , "SharpDaemon.dll"
             );
             var process = new DaemonProcess(new DaemonProcess.Args
             {
-                Executable = Environ.Executable("dotnet"),
-                Arguments = $"\"{webserver}\" EndPoint={config.WebEP} Root=\"{config.WebRoot}\"",
+                Executable = ExecutableTools.Relative("Daemon.StaticWebServer.exe"),
+                Arguments = $"EndPoint={config.WebEP} Root=\"{config.WebRoot}\"",
             });
             Output.Trace("Web process {0} {1} {2} {3}", process.Id, process.Name, process.Info.FileName, process.Info.Arguments);
             var reader = new Runner();
