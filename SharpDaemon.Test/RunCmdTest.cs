@@ -37,7 +37,7 @@ namespace SharpDaemon.Test
             {
                 TestTools.Shell(config, (shell) =>
                 {
-                    //macos get connection refused because shell not ready
+                    //macos gets connection refused because shell not ready
                     Thread.Sleep(400);
 
                     var lastEP = string.Empty;
@@ -74,7 +74,7 @@ namespace SharpDaemon.Test
                     {
                         var task = Task.Run(() =>
                         {
-                            //macos get connection refused because shell not ready
+                            //macos gets connection refused because shell not ready
                             Thread.Sleep(400);
 
                             TestTools.Client(config, (client, endpoint) =>
@@ -95,6 +95,41 @@ namespace SharpDaemon.Test
                     //net462 works for 20 clients and 2000ms wait
                     //AggregateException showing array exceptions for each throwing task (confirmed)
                     AssertTools.True(Task.WaitAll(tasks.ToArray(), 2000), "Timeout waiting tasks");
+                });
+            }
+        }
+
+        [Test]
+        public void ClientReconnectCmdTest()
+        {
+            using (var config = new Config())
+            {
+                TestTools.Shell(config, (shell) =>
+                {
+                    //macos gets connection refused because shell not ready
+                    Thread.Sleep(400);
+
+                    var lastEP = string.Empty;
+                    TestTools.Client(config, (client, endpoint) =>
+                    {
+                        lastEP = endpoint;
+                        shell.WaitFor(400, $@"Register Client {lastEP} connected");
+
+                        client.Execute(@"run cmd.exe");
+                        client.WaitFor(400, @"<c Process \d+ has started");
+                        client.WaitFor(400, @"<c Microsoft Windows");
+                        client.Execute(@"cd c:\Users");
+                        client.Execute(@"dir");
+                        client.WaitFor(400, @"\d+ File");
+                        client.WaitFor(400, @"\d+ Dir");
+                        shell.Execute("system children");
+                        shell.WaitFor(400, $@"2 total");
+                    });
+
+                    shell.WaitFor(400, $@"Register Client {lastEP} disconnected");
+                    //permanent Console Window Host
+                    shell.Execute("system children");
+                    shell.WaitFor(400, $@"1 total");
                 });
             }
         }

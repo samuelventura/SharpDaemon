@@ -51,6 +51,7 @@ dotnet publish SharpDaemon.Service -c Release
 dotnet test SharpDaemon.Test
 dotnet test SharpDaemon.Test --filter FullyQualifiedName~BasicTest
 dotnet test SharpDaemon.Test --filter FullyQualifiedName~RunCmdTest
+dotnet test SharpDaemon.Test --filter FullyQualifiedName~ProcessTest
 dotnet test SharpDaemon.Test --filter FullyQualifiedName~WebServerTest
 #console output for test cases
 dotnet test SharpDaemon.Test -v n

@@ -79,7 +79,7 @@ namespace SharpDaemon
             process.StandardInput.Flush();
         }
 
-        public static void Interactive(IStream stream, Args args)
+        public static void Interactive(IStream io, Args args)
         {
             var thread = Thread.CurrentThread.Name;
             var reader = new Runner(new Runner.Args() { ThreadName = string.Format("{0}_R", thread) });
@@ -92,7 +92,7 @@ namespace SharpDaemon
                 //to ensure exited message happens after real exit
                 using (process)
                 {
-                    stream.WriteLine("Process {0} has started", process.Id);
+                    io.WriteLine("Process {0} has started", process.Id);
                     var queue = new LockedQueue<bool>();
                     reader.Run(() =>
                     {
@@ -100,7 +100,7 @@ namespace SharpDaemon
                         while (line != null)
                         {
                             Logger.Trace("<o:{0} {1}", process.Id, line);
-                            stream.WriteLine(line);
+                            io.WriteLine(line);
                             line = process.ReadLine();
                         }
                         Logger.Trace("<o:{0} EOF", process.Id);
@@ -120,7 +120,7 @@ namespace SharpDaemon
                     while (true)
                     {
                         //non blocking readline needed to notice reader exit
-                        var line = stream.TryReadLine(out var eof);
+                        var line = io.TryReadLine(out var eof);
                         if (eof) Logger.Trace("EOF input > process");
                         if (eof) break;
                         if (line != null)
@@ -133,7 +133,7 @@ namespace SharpDaemon
                 }
                 //previous loop may swallow exit! by feeding it to process
                 //unit test should wait for syncing message below before exit!
-                stream.WriteLine("Process {0} has exited", process.Id);
+                io.WriteLine("Process {0} has exited", process.Id);
             }
         }
 

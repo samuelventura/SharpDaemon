@@ -45,12 +45,14 @@ namespace SharpDaemon
         {
             lock (write)
             {
-                Console.Out.Write(ex.ToString());
-                Console.Out.Write(Environ.NewLine);
-                Console.Out.Flush();
+                Console.Error.Write(ex.ToString());
+                Console.Error.Write(Environ.NewLine);
+                Console.Error.Flush();
             }
 
-            Logger.Trace(ex);
+            //exceptions are reported as set status and dumped to file
+            //no duplication to stderrr
+            //Logger.Trace(ex);
         }
     }
 

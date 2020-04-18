@@ -38,6 +38,7 @@ namespace Daemon.Test
                 }
                 //throw Exception Message
                 if (line.StartsWith("throw")) throw new Exception(line.Substring(6));
+                if (line == "exit!") return;
                 line = Stdio.ReadLine();
             }
 

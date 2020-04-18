@@ -41,7 +41,6 @@ namespace SharpDaemon.Test
             log = new StreamWriter(logfile, true);
             writers.Add(new TextWriterWriteLine(log));
             Timed = new TimedWriter(writers);
-            var pid = Process.GetCurrentProcess().Id;
             Logger.TRACE = Timed;
             writers.WriteLine(string.Empty); //separating line
             writers.WriteLine("");
@@ -53,6 +52,30 @@ namespace SharpDaemon.Test
 
         public string WebEP { get { return $"{WebIP}:{WebPort}"; } }
         public string ShellEP { get { return $"{ShellIP}:{ShellPort}"; } }
+
+        public void Dispose()
+        {
+            log.Dispose();
+        }
+    }
+
+    public class Simple : IDisposable
+    {
+        private StreamWriter log;
+
+        public Simple()
+        {
+            var writers = new WriteLineCollection();
+            writers.Add(new StdoutWriteLine());
+            var logfile = ExecutableTools.Relative("log.txt");
+            log = new StreamWriter(logfile, true);
+            writers.Add(new TextWriterWriteLine(log));
+            Logger.TRACE = new TimedWriter(writers);
+            writers.WriteLine(string.Empty); //separating line
+            writers.WriteLine("");
+            Logger.Trace("-----------------------------------------------------------------------------");
+            Logger.Trace("Test case {0} starting...", TestContext.CurrentContext.Test.FullName);
+        }
 
         public void Dispose()
         {
@@ -75,7 +98,9 @@ namespace SharpDaemon.Test
         public void WriteLine(string format, params object[] args)
         {
             var line = TextTools.Format(format, args);
+            //Logger.Trace("PUSH {0}", line);
             input.Push(line);
+            //Logger.Trace("PUSHED {0}", line);
         }
 
         public void WaitFor(int toms, string format, params object[] args)
@@ -84,11 +109,14 @@ namespace SharpDaemon.Test
             var pattern = TextTools.Format(format, args);
             while (true)
             {
+                //Logger.Trace("POPPING for {0}", pattern);
                 var line = input.Pop(1, null);
-                //if (line != null) Stdio.WriteLine("POP {0}", line);
+                //if (line == null) Logger.Trace("POP <NULL>");
+                //if (line != null) Logger.Trace("POP {0}", line);
                 //Beware | is regex reserved `or`
                 if (line != null && Regex.IsMatch(line, pattern)) break;
-                if (DateTime.Now > dl) throw ExceptionTools.Make("Timeout waiting for `{0}`", pattern);
+                //if (DateTime.Now > dl) Logger.Trace("Timeout waiting for `{0}`", TextTools.Readable(pattern));
+                if (DateTime.Now > dl) throw ExceptionTools.Make("Timeout waiting for `{0}`", TextTools.Readable(pattern));
             }
         }
 
@@ -163,18 +191,26 @@ namespace SharpDaemon.Test
 
         public static void Shell(Config config, Action<ITestShell> action)
         {
+            Directory.CreateDirectory(config.Root);
+            var path = ExecutableTools.Relative("SharpDaemon.Server.exe");
+            var args = $"Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"";
+            Shell(path, args, action);
+        }
+
+        public static void Shell(string path, string args, Action<ITestShell> action)
+        {
             using (var disposer = new Disposer())
             {
-                Directory.CreateDirectory(config.Root);
-
                 var process = new DaemonProcess(new DaemonProcess.Args
                 {
-                    Executable = ExecutableTools.Relative("SharpDaemon.Server.exe"),
-                    Arguments = $"Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"",
+                    Executable = path,
+                    Arguments = args,
                 });
+
                 Logger.Trace("Shell process {0} {1}", process.Id, process.Name, process.Info.FileName);
                 Logger.Trace("Shell path {0}", process.Info.FileName);
                 Logger.Trace("Shell args {0}", process.Info.Arguments);
+
                 var shell = new TestShell();
                 var reader = new Runner(new Runner.Args { ThreadName = "SDTOUT" });
                 var erroer = new Runner(new Runner.Args { ThreadName = "STDERR" });

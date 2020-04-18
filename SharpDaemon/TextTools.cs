@@ -16,8 +16,12 @@ namespace SharpDaemon
             var sb = new StringBuilder();
             foreach (var c in text)
             {
-                if (Char.IsControl(c)) sb.Append(((int)c).ToString("X2"));
-                else if (Char.IsWhiteSpace(c)) sb.Append(((int)c).ToString("X2"));
+                if (Char.IsControl(c) || Char.IsWhiteSpace(c))
+                {
+                    sb.Append('[');
+                    sb.Append(((int)c).ToString("X2"));
+                    sb.Append(']');
+                }
                 else sb.Append(c);
             }
             return sb.ToString();
