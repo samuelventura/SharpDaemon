@@ -13,9 +13,9 @@ namespace SharpDaemon.Test
             {
                 TestTools.Shell(config, (shell) =>
                 {
-                    shell.WaitFor(400, @"Stdin loop...");
+                    shell.WaitFor(400, @"<o Listening on 127.0.0.1:12333");
                     shell.Execute("exit!");
-                    shell.WaitFor(400, @"Stdin closed");
+                    shell.WaitFor(400, Environ.NewLines);
                 });
             }
         }
@@ -27,9 +27,9 @@ namespace SharpDaemon.Test
             {
                 TestTools.Shell(config, (shell) =>
                 {
-                    shell.WaitFor(400, @"Stdin loop...");
-                    shell.Execute(@"exit!");
-                    shell.WaitFor(400, @"Stdin closed");
+                    shell.WaitFor(400, @"<o Listening on 127.0.0.1:12333");
+                    shell.Execute("exit!");
+                    shell.WaitFor(400, Environ.NewLines);
                 });
             }
         }
@@ -42,12 +42,23 @@ namespace SharpDaemon.Test
                 TestTools.Shell(config, (shell) =>
                 {
                     shell.Execute(@"system counts");
-                    shell.WaitFor(400, @"\d+ total counts");
-                    shell.WaitFor(400, @"\d+ total undisposed");
+                    shell.WaitFor(400, @"<o \d+ total counts");
+                    shell.WaitFor(400, @"<o \d+ total undisposed");
+                });
+            }
+        }
+
+        [Test]
+        public void ShellSystemPasswordTest()
+        {
+            using (var config = new Config())
+            {
+                TestTools.Shell(config, (shell) =>
+                {
                     var passfile = ExecutableTools.Relative("Password.txt");
                     var password = File.ReadAllText(passfile).Trim();
                     shell.Execute($@"system password {password}");
-                    shell.WaitFor(400, @"Password changed");
+                    shell.WaitFor(400, @"<o Password changed");
                 });
             }
         }

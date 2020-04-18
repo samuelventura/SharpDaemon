@@ -16,16 +16,16 @@ namespace SharpDaemon.Test
                 TestTools.Shell(config, (shell) =>
                 {
                     shell.Execute(@"run cmd.exe");
-                    shell.WaitFor(400, @"Process \d+ has started");
-                    shell.WaitFor(400, @"Microsoft Corporation");
+                    shell.WaitFor(400, @"<o Process \d+ has started");
+                    shell.WaitFor(400, @"<o Microsoft Windows");
                     shell.Execute(@"cd c:\Users");
                     shell.Execute(@"dir");
                     shell.WaitFor(400, @"\d+ File");
                     shell.WaitFor(400, @"\d+ Dir");
                     shell.Execute(@"exit"); //cmd.exe
-                    shell.WaitFor(400, @"Process \d+ has exited"); //prevent swallowing of exit!
+                    shell.WaitFor(400, @"<o Process \d+ has exited"); //prevent swallowing of exit!
                     shell.Execute(@"exit!"); //shell
-                    shell.WaitFor(400, @"Stdin closed");
+                    shell.WaitFor(400, Environ.NewLines);
                 });
             }
         }
@@ -44,20 +44,19 @@ namespace SharpDaemon.Test
                     TestTools.Client(config, (client, endpoint) =>
                     {
                         lastEP = endpoint;
-                        shell.WaitFor(400, $@"LISTENER Client {lastEP} connected");
+                        shell.WaitFor(400, $@"Register Client {lastEP} connected");
 
                         client.Execute(@"run cmd.exe");
-                        client.WaitFor(400, @"Process \d+ has started");
-                        client.WaitFor(400, @"Microsoft Corporation");
+                        client.WaitFor(400, @"<c Process \d+ has started");
+                        client.WaitFor(400, @"<c Microsoft Windows");
                         client.Execute(@"cd c:\Users");
                         client.Execute(@"dir");
                         client.WaitFor(400, @"\d+ File");
                         client.WaitFor(400, @"\d+ Dir");
                         client.Execute(@"exit"); //cmd.exe
-
-                        client.WaitFor(400, @"Process \d+ has exited"); //prevent swallowing of exit!
+                        client.WaitFor(400, @"<c Process \d+ has exited"); //prevent swallowing of exit!
                     });
-                    shell.WaitFor(400, $@"LISTENER Client {lastEP} disconnected");
+                    shell.WaitFor(400, $@"Register Client {lastEP} disconnected");
                 });
             }
         }
@@ -81,15 +80,14 @@ namespace SharpDaemon.Test
                             TestTools.Client(config, (client, endpoint) =>
                             {
                                 client.Execute(@"run cmd.exe");
-                                client.WaitFor(400, @"Process \d+ has started");
-                                client.WaitFor(400, @"Microsoft Corporation");
+                                client.WaitFor(400, @"<c Process \d+ has started");
+                                client.WaitFor(400, @"<c Microsoft Windows");
                                 client.Execute(@"cd c:\Users");
                                 client.Execute(@"dir");
                                 client.WaitFor(400, @"\d+ File");
                                 client.WaitFor(400, @"\d+ Dir");
                                 client.Execute(@"exit"); //cmd.exe
-                                client.WaitFor(400, @"Process \d+ has exited"); //prevent swallowing of exit!
-                                //throw new Exception("Exception!");
+                                client.WaitFor(400, @"<c Process \d+ has exited"); //prevent swallowing of exit!
                             });
                         });
                         tasks.Add(task);

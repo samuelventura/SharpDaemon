@@ -5,6 +5,21 @@ namespace SharpDaemon
 {
     public abstract class Disposable : IDisposable
     {
+
+        public class Wrapper : Disposable
+        {
+            private readonly IDisposable disposable;
+
+            public Wrapper(IDisposable disposable)
+            {
+                this.disposable = disposable;
+            }
+
+            protected override void Dispose(bool disposed)
+            {
+                disposable.Dispose();
+            }
+        }
         class ThreadInfo
         {
             public readonly int Id;
@@ -66,16 +81,17 @@ namespace SharpDaemon
 
         private void Log(string format, params object[] args)
         {
-            var writer = Output.TRACE;
+            var writer = Logger.TRACE;
             if (writer != null)
             {
                 var text = TextTools.Format(format, args);
                 var thread = Thread.CurrentThread;
-                writer.WriteLine("Thread:{0}:{1} Disposable:{2}:{3} {4}"
+                writer.WriteLine("Thread:{0}:{1} Disposable:{2}:{3} DC:{4} {5}"
                     , thread.ManagedThreadId
                     , thread.Name
                     , GetType()
                     , GetHashCode()
+                    , Undisposed
                     , text
                 );
             }

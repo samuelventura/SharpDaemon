@@ -10,36 +10,34 @@ namespace Daemon.StaticWebServer
         class Config
         {
             public string Id { get; set; }
+            public bool Daemon { get; set; }
             public string Root { get; set; }
             public string EndPoint { get; set; }
-            public bool Trace { get; set; }
         }
 
         static void Main(string[] args)
         {
-            ExceptionTools.SetupDefaultHandler();
+            ProgramTools.Setup();
 
             var config = new Config();
 
-            Stdio.WriteLine("Args {0} {1}", args.Length, string.Join(" ", args));
-
-            for (var i = 0; i < args.Length; i++)
+            //args will always log to stderr because trace flag not loaded yet
+            ExecutableTools.LogArgs(new StderrWriteLine(), args, (arg) =>
             {
-                Stdio.WriteLine("Arg {0} {1}", i, args[i]);
-
-                ConfigTools.SetProperty(config, args[i]);
-            }
+                ConfigTools.SetProperty(config, arg);
+            });
 
             AssertTools.NotEmpty(config.EndPoint, "Missing EndPoint");
             AssertTools.NotEmpty(config.Root, "Missing Root");
-            if (config.Trace) Output.TRACE = new ConsoleWriteLine();
+
+            if (!config.Daemon) Logger.TRACE = new StderrWriteLine();
 
             var uri = string.Format("http://{0}/", config.EndPoint);
             var http = new HttpListener();
             http.Prefixes.Add(uri);
             http.Start();
-            var accepter = new Runner(new Runner.Args { ExceptionHandler = Output.Trace });
-            var handler = new Runner(new Runner.Args { ExceptionHandler = Output.Trace });
+            var accepter = new Runner(new Runner.Args { ThreadName = "Accepter" });
+            var handler = new Runner(new Runner.Args { ThreadName = "Handler" });
             accepter.Run(() =>
             {
                 while (http.IsListening)
@@ -53,7 +51,7 @@ namespace Daemon.StaticWebServer
                         var file = ctx.Request.RawUrl.Substring(1); //remove leading /
                         if (!PathTools.IsChildPath(config.Root, file)) pass = false;
                         var path = PathTools.Combine(config.Root, file);
-                        Output.Trace("File {0} {1}", file, path);
+                        Logger.Trace("File {0} {1}", file, path);
                         if (!File.Exists(path)) pass = false;
                         if (ctx.Request.HttpMethod != "GET") pass = false;
                         if (pass)
@@ -81,7 +79,7 @@ namespace Daemon.StaticWebServer
                 }
             });
 
-            Stdio.WriteLine("Serving at {0}", uri);
+            Stdio.SetStatus("Listeninig on {0}", uri);
 
             using (var disposer = new Disposer())
             {
@@ -93,7 +91,7 @@ namespace Daemon.StaticWebServer
                 while (line != null) line = Stdio.ReadLine();
             }
 
-            Stdio.WriteLine("Stdin closed");
+            Logger.Trace("Stdin closed");
 
             Environment.Exit(0);
         }

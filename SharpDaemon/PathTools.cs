@@ -19,7 +19,7 @@ namespace SharpDaemon
         {
             var root = Path.GetFullPath(folder);
             var path = Combine(folder, child);
-            Output.Trace("{0}", path);
+            Logger.Trace("{0}", path);
             //check there is something after root
             if (path.Length <= root.Length) return false;
             //check root is parent

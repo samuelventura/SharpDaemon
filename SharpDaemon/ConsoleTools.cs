@@ -8,12 +8,12 @@ namespace SharpDaemon
     {
         private static readonly object read = new object();
 
+        private static readonly object write = new object();
+
         public static string ReadLine()
         {
             lock (read) return Console.ReadLine();
         }
-
-        private static readonly object write = new object();
 
         public static void WriteLine(string format, params object[] args)
         {
@@ -21,10 +21,36 @@ namespace SharpDaemon
 
             lock (write)
             {
-                Console.Write(text);
-                Console.Write(Environ.NewLine);
+                Console.Out.Write(text);
+                Console.Out.Write(Environ.NewLine);
                 Console.Out.Flush();
             }
+        }
+
+        public static void SetStatus(string format, params object[] args)
+        {
+            var text = TextTools.Format(format, args);
+
+            lock (write)
+            {
+                Console.Out.Write(text);
+                Console.Out.Write(Environ.NewLine);
+                Console.Out.Flush();
+            }
+
+            Logger.Trace(text);
+        }
+
+        public static void LogError(Exception ex)
+        {
+            lock (write)
+            {
+                Console.Out.Write(ex.ToString());
+                Console.Out.Write(Environ.NewLine);
+                Console.Out.Flush();
+            }
+
+            Logger.Trace(ex);
         }
     }
 
@@ -36,11 +62,28 @@ namespace SharpDaemon
         }
     }
 
-    public class ConsoleWriteLine : IWriteLine
+    public class StdoutWriteLine : IWriteLine
     {
         public void WriteLine(string format, params object[] args)
         {
             Stdio.WriteLine(format, args);
+        }
+    }
+
+    public class StderrWriteLine : IWriteLine
+    {
+        private static readonly object write = new object();
+
+        public void WriteLine(string format, params object[] args)
+        {
+            var text = TextTools.Format(format, args);
+
+            lock (write)
+            {
+                Console.Error.Write(text);
+                Console.Error.Write(Environ.NewLine);
+                Console.Error.Flush();
+            }
         }
     }
 

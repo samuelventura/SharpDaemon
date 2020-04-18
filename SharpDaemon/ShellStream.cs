@@ -1,21 +1,22 @@
 ﻿using System;
+using System.Threading;
 
 namespace SharpDaemon
 {
     public class ShellStream : IStream, IDisposable
     {
         private readonly LockedQueue<string> queue = new LockedQueue<string>();
-        private readonly string newline = $"{Environ.NewLine}";
-        private readonly IOutput output;
+        private readonly IWriteLine writer;
         private readonly IReadLine reader;
         private readonly Runner runner;
         private volatile bool closed;
 
-        public ShellStream(IOutput output, IReadLine reader)
+        public ShellStream(IWriteLine writer, IReadLine reader)
         {
-            this.output = output;
+            var thread = Thread.CurrentThread.Name;
+            this.writer = writer;
             this.reader = reader;
-            runner = new Runner();
+            runner = new Runner(new Runner.Args() { ThreadName = string.Format("{0}_SHELL_R", thread) });
             runner.Run(ReadLoop);
             runner.Run(AfterLoop);
         }
@@ -33,8 +34,8 @@ namespace SharpDaemon
             if (closed) return null;
             var line = queue.Pop(1, null);
             while (line == null) line = queue.Pop(1, null);
-            if (line == newline) closed = true;
-            if (line == newline) return null;
+            if (line == Environ.NewLines) closed = true;
+            if (line == Environ.NewLines) return null;
             return line;
         }
 
@@ -46,21 +47,30 @@ namespace SharpDaemon
             if (closed) return null;
             eof = false;
             var line = queue.Pop(1, null);
-            if (line == newline) closed = true;
-            if (line != newline) return line;
+            if (line == Environ.NewLines) closed = true;
+            if (line != Environ.NewLines) return line;
             eof = true;
             return null;
         }
 
-        public void HandleException(Exception ex) => output.HandleException(ex);
+        public void HandleException(Exception ex)
+        {
+            Logger.Trace("{0}", ex);
+            writer.WriteLine("{0}", ex);
+        }
 
-        public void WriteLine(string format, params object[] args) => output.WriteLine(format, args);
+        public void WriteLine(string format, params object[] args)
+        {
+            Logger.Trace(format, args);
+            writer.WriteLine(format, args);
+        }
 
         private void ReadLoop()
         {
             var line = reader.ReadLine();
             while (line != null)
             {
+                Logger.Trace("< {0}", line);
                 queue.Push(line);
                 line = reader.ReadLine();
             }
@@ -68,7 +78,7 @@ namespace SharpDaemon
 
         private void AfterLoop()
         {
-            queue.Push(newline);
+            queue.Push(Environ.NewLines);
         }
     }
 }

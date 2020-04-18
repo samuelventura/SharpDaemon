@@ -21,9 +21,7 @@ namespace SharpDaemon.Server
 
         static void Main(string[] args)
         {
-
-            ExceptionTools.SetupDefaultHandler();
-            Thread.CurrentThread.Name = "Main";
+            ProgramTools.Setup();
 
             var config = new Config();
 
@@ -33,33 +31,27 @@ namespace SharpDaemon.Server
             config.Timeout = 5000;
             config.Root = ExecutableTools.Relative("Root");
 
-            Stdio.WriteLine("Args {0} {1}", args.Length, string.Join(" ", args));
-
-            for (var i = 0; i < args.Length; i++)
+            //args will always log to stderr because daemon flag not loaded yet
+            ExecutableTools.LogArgs(new StderrWriteLine(), args, (arg) =>
             {
-                Stdio.WriteLine("Arg {0} {1}", i, args[i]);
-
-                ConfigTools.SetProperty(config, args[i]);
-            }
+                ConfigTools.SetProperty(config, arg);
+            });
 
             AssertTools.NotEmpty(config.Root, "Missing Root path");
             AssertTools.NotEmpty(config.IP, "Missing IP");
             AssertTools.Ip(config.IP, "Invalid IP");
 
+            var pid = Process.GetCurrentProcess().Id;
             var writers = new WriteLineCollection();
-            var timed = new TimedWriter(writers);
+
             if (!config.Daemon)
             {
-                writers.Add(new ConsoleWriteLine());
-                var pid = Process.GetCurrentProcess().Id;
-                Output.TRACE = new NamedOutput(timed, string.Format("TRACE_{0}", pid));
+                writers.Add(new StderrWriteLine());
+                Logger.TRACE = new TimedWriter(writers);
             }
 
-            var named = new NamedOutput(timed, "STDIN");
+            Logger.Trace("Root {0}", config.Root);
 
-            named.WriteLine("Root {0}", config.Root);
-
-            timeout = config.Timeout;
             var dbpath = Path.Combine(config.Root, "SharpDaemon.LiteDb");
             var logpath = Path.Combine(config.Root, "SharpDaemon.Log.txt");
             var eppath = Path.Combine(config.Root, "SharpDaemon.Endpoint.txt");
@@ -70,79 +62,78 @@ namespace SharpDaemon.Server
             //acts like mutex for the workspace
             var log = new StreamWriter(logpath, true);
             writers.Add(new TextWriterWriteLine(log));
-            var output = new Output(timed);
+
+            ExecutableTools.LogArgs(new TextWriterWriteLine(log), args);
 
             var instance = new Instance(new Instance.Args
             {
                 DbPath = dbpath,
                 RestartDelay = config.Delay,
                 Downloads = downloads,
-                Output = output,
                 EndPoint = new IPEndPoint(IPAddress.Parse(config.IP), config.Port),
             });
-            named.WriteLine("Listening on {0}", instance.EndPoint);
+
+            Stdio.SetStatus("Listening on {0}", instance.EndPoint);
+
             using (var disposer = new Disposer())
             {
-                disposer.Push(Disposed);
-                disposer.Push(log);
+                //wrap to add to disposable count
+                disposer.Push(new Disposable.Wrapper(log));
                 disposer.Push(instance);
-                disposer.Push(Disposing);
+                disposer.Push(() => Disposing(config.Timeout));
 
                 if (config.Daemon)
                 {
-                    Stdio.WriteLine("Stdin loop...");
+                    Logger.Trace("Stdin loop...");
                     var line = Stdio.ReadLine();
                     while (line != null)
                     {
-                        named.WriteLine("> {0}", line);
+                        Logger.Trace("> {0}", line);
                         if ("exit!" == line) break;
                         line = Stdio.ReadLine();
                     }
-                    Stdio.WriteLine("Stdin closed");
+                    Logger.Trace("Stdin closed");
                 }
                 else
                 {
-                    named.WriteLine("Stdin loop...");
+                    Logger.Trace("Stdin loop...");
                     var shell = instance.CreateShell();
-                    var stream = new ShellStream(new NamedOutput(output, "SHELL <"), new ConsoleReadLine());
+                    var stream = new ShellStream(new StdoutWriteLine(), new ConsoleReadLine());
                     //disposer.Push(stream); //stdin.readline wont return even after close/dispose call
                     var line = stream.ReadLine();
                     while (line != null)
                     {
-                        named.WriteLine("> {0}", line);
                         if ("exit!" == line) break;
                         Shell.ParseAndExecute(shell, stream, line);
                         line = stream.ReadLine();
                     }
-                    named.WriteLine("Stdin closed");
+                    Logger.Trace("Stdin closed");
                 }
             }
 
             Environment.Exit(0);
         }
 
-        static volatile bool disposed;
-        static volatile int timeout;
-
-        static void Disposed()
+        static void Disposing(int toms)
         {
-            disposed = true;
-        }
-
-        static void Disposing()
-        {
+            Logger.Trace("Launching dispose monitor");
             var thread = new Thread(() =>
             {
-                var dl = DateTime.Now.AddMilliseconds(timeout);
+                var dl = DateTime.Now.AddMilliseconds(toms);
+                Logger.Trace("Dispose monitor DL {0}", dl.ToString("HH:mm:ss.fff"));
                 while (true)
                 {
-                    if (DateTime.Now > dl) throw new Exception("Timeout waiting dispose");
-                    if (disposed) return;
-                    Thread.Sleep(1);
+                    if (DateTime.Now > dl) throw ExceptionTools.Make("Timeout with dispose count {0}", Disposable.Undisposed);
+                    if (Disposable.Undisposed == 0)
+                    {
+                        Logger.Trace("Dispose zero count detected");
+                        Environment.Exit(0);
+                    }
+                    Thread.Sleep(100);
                 }
             });
             thread.IsBackground = true;
-            thread.Name = "Dispose monitor";
+            thread.Name = "DisposeMonitor";
             thread.Start();
         }
     }

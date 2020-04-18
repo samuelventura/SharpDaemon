@@ -7,8 +7,8 @@ namespace SharpDaemon.Server
         class DaemonRT : Disposable
         {
             private readonly DaemonProcess process;
-            private readonly IOutput named;
-            private readonly Runner runner;
+            private readonly Runner reader;
+            private readonly Runner erroer;
             private readonly DaemonDto dto;
             private volatile string status;
             private readonly int delay;
@@ -18,7 +18,7 @@ namespace SharpDaemon.Server
             public int Pid { get { return process.Id; } }
             public DaemonDto Dto { get { return dto.Clone(); } }
 
-            public DaemonRT(DaemonDto dto, string root, int delay, IWriteLine writer)
+            public DaemonRT(DaemonDto dto, string root, int delay)
             {
                 this.delay = delay;
                 this.dto = dto.Clone();
@@ -29,24 +29,20 @@ namespace SharpDaemon.Server
                     {
                         Executable = PathTools.Combine(root, dto.Path),
                         //id matches [a-zA_Z][a-zA_Z0-9_]*
-                        Arguments = string.Format("Id={0} {1}", dto.Id, dto.Args),
+                        Arguments = string.Format("Id={0} Daemon=True {1}", dto.Id, dto.Args),
                     });
                     disposer.Push(process);
 
                     status = "Starting...";
-                    var name = string.Format("DAEMON {0}_{1}", dto.Id, process.Id);
-                    named = new NamedOutput(writer, name);
 
-                    runner = new Runner(new Runner.Args
-                    {
-                        ExceptionHandler = named.HandleException,
-                        ThreadName = name,
-                    });
-                    disposer.Push(runner);
+                    reader = new Runner(new Runner.Args { ThreadName = string.Format("DAEMON_{0}_{1}_O", dto.Id, process.Id) });
+                    erroer = new Runner(new Runner.Args { ThreadName = string.Format("DAEMON_{0}_{1}_E", dto.Id, process.Id) });
+                    disposer.Push(erroer);
 
                     disposer.Push(Dispose); //ensure cleanup order
-                    runner.Run(ReadLoop);
-                    runner.Run(UpdateRestart);
+                    erroer.Run(ErrorLoop);
+                    reader.Run(ReadLoop);
+                    reader.Run(UpdateRestart);
                     disposer.Clear();
                 }
             }
@@ -54,7 +50,7 @@ namespace SharpDaemon.Server
             protected override void Dispose(bool disposed)
             {
                 ExceptionTools.Try(process.Dispose);
-                ExceptionTools.Try(runner.Dispose);
+                ExceptionTools.Try(reader.Dispose);
             }
 
             public bool WillRestart()
@@ -97,8 +93,18 @@ namespace SharpDaemon.Server
                 while (line != null)
                 {
                     status = line;
-                    named.WriteLine("< {0}", line);
+                    Logger.Trace("<o {0}", line);
                     line = process.ReadLine();
+                }
+            }
+
+            private void ErrorLoop()
+            {
+                var line = process.ReadError();
+                while (line != null)
+                {
+                    Logger.Trace("<e {0}", line);
+                    line = process.ReadError();
                 }
             }
         }

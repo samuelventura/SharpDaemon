@@ -11,11 +11,6 @@ namespace SharpDaemon
 
     public static class ExceptionTools
     {
-        public static void SetupDefaultHandler()
-        {
-            AppDomain.CurrentDomain.UnhandledException += ExceptionTools.DumpAndExit;
-        }
-
         public static void DumpAndExit(object sender, UnhandledExceptionEventArgs args)
         {
             DumpAndExit(args.ExceptionObject as Exception);
@@ -26,7 +21,8 @@ namespace SharpDaemon
             //FIXME this should never happen
             //there is a programming error to be fixed
             Try(() => Dump(ex));
-            Try(() => Stdio.WriteLine("{0} {1}", ex.GetType(), ex.Message));
+            Try(() => Stdio.SetStatus("{0} {1}", ex.GetType(), ex.Message));
+            Try(() => Stdio.LogError(ex));
             Environment.Exit(1);
         }
 

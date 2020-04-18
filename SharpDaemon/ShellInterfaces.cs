@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SharpDaemon
 {
-    public interface IStream : IOutput, IReadLine, ITryReadLine { }
+    public interface IStream : IWriteLine, IHandleException, IReadLine, ITryReadLine { }
 
     public interface IShell
     {

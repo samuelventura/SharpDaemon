@@ -54,7 +54,7 @@ namespace SharpDaemon.Server
             }
         }
 
-        private void ExecuteListInstalled(IOutput io, params string[] tokens)
+        private void ExecuteListInstalled(IStream io, params string[] tokens)
         {
             io.WriteLine("Id|Path|Args");
             foreach (var dto in installed.Values)
@@ -64,7 +64,7 @@ namespace SharpDaemon.Server
             io.WriteLine("{0} daemon(s) installed", installed.Count);
         }
 
-        private void ExecuteListRunning(IOutput io, params string[] tokens)
+        private void ExecuteListRunning(IStream io, params string[] tokens)
         {
             io.WriteLine("Id|Name|Pid|Status");
             foreach (var rt in running.Values)
@@ -74,7 +74,7 @@ namespace SharpDaemon.Server
             io.WriteLine("{0} daemon(s) running", running.Count);
         }
 
-        private void ExecuteUninstall(IOutput io, params string[] tokens)
+        private void ExecuteUninstall(IStream io, params string[] tokens)
         {
             var id = tokens[2];
             installed.TryGetValue(id, out var dto);
@@ -84,7 +84,7 @@ namespace SharpDaemon.Server
             ReloadDatabase();
         }
 
-        private void ExecuteKill(IOutput io, params string[] tokens)
+        private void ExecuteKill(IStream io, params string[] tokens)
         {
             var id = tokens[2];
             running.TryGetValue(id, out var rt);
@@ -93,7 +93,7 @@ namespace SharpDaemon.Server
             io.WriteLine("Daemon {0} killed", id);
         }
 
-        private void ExecuteKillAllDaemons(IOutput io, params string[] tokens)
+        private void ExecuteKillAllDaemons(IStream io, params string[] tokens)
         {
             foreach (var rt in running.Values)
             {
@@ -107,7 +107,7 @@ namespace SharpDaemon.Server
             io.WriteLine("{0} total", running.Count);
         }
 
-        private void ExecuteKillAllChildren(IOutput io, params string[] tokens)
+        private void ExecuteKillAllChildren(IStream io, params string[] tokens)
         {
             var count = 0;
             var process = Process.GetCurrentProcess();
@@ -127,7 +127,7 @@ namespace SharpDaemon.Server
             io.WriteLine("{0} total", count);
         }
 
-        private void ExecuteInstall(IOutput io, params string[] tokens)
+        private void ExecuteInstall(IStream io, params string[] tokens)
         {
             var id = tokens[2];
             installed.TryGetValue(id, out var dto);
@@ -148,6 +148,6 @@ namespace SharpDaemon.Server
             ReloadDatabase();
         }
 
-        private void Execute(IOutput io, Action action) => runner.Run(action, io.HandleException);
+        private void Execute(IStream io, Action action) => runner.Run(action, io.HandleException);
     }
 }

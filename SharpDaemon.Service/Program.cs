@@ -35,7 +35,7 @@ namespace SharpDaemon.Service
 
         static void Main(string[] args)
         {
-            ExceptionTools.SetupDefaultHandler();
+            ProgramTools.Setup();
 
             ServiceBase.Run(new Program());
         }

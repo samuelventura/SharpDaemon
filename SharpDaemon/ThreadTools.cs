@@ -17,7 +17,6 @@ namespace SharpDaemon
             public string ThreadName;
             public int IdleMsDelay;
             public Action IdleAction;
-            public Action<Exception> ExceptionHandler;
         }
 
         private readonly Action<Exception> handler;
@@ -31,7 +30,7 @@ namespace SharpDaemon
         {
             args = args ?? new Args();
 
-            this.handler = args.ExceptionHandler;
+            this.handler = Logger.Trace;
             this.delay = Math.Max(0, args.IdleMsDelay);
             this.idle = args.IdleAction;
 

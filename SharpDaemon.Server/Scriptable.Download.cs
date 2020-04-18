@@ -52,7 +52,7 @@ namespace SharpDaemon.Server
             }
         }
 
-        private void ExecuteList(IOutput io, params string[] tokens)
+        private void ExecuteList(IStream io, params string[] tokens)
         {
             var path = downloads;
             if (tokens.Length == 3)
@@ -79,7 +79,7 @@ namespace SharpDaemon.Server
             io.WriteLine("{0} total files", total);
         }
 
-        private void ExecuteDelete(IOutput io, params string[] tokens)
+        private void ExecuteDelete(IStream io, params string[] tokens)
         {
             var dir = tokens[2];
             AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directory {0} not found", dir);
@@ -90,7 +90,7 @@ namespace SharpDaemon.Server
         //https://stackoverflow.com/questions/18924789/directory-move-access-to-path-is-denied
         //netcore linux WSL System.IO.IOException: Access to the path
         //download zip and delete work ok at the same time
-        private void ExecuteRename(IOutput io, params string[] tokens)
+        private void ExecuteRename(IStream io, params string[] tokens)
         {
             var dir = tokens[2];
             AssertTools.True(PathTools.HasDirectChild(downloads, dir), "Directory {0} not found", dir);
@@ -105,7 +105,7 @@ namespace SharpDaemon.Server
             io.WriteLine("Directory {0} renamed to {1}", dir, name);
         }
 
-        private void ExecuteZip(IOutput io, params string[] tokens)
+        private void ExecuteZip(IStream io, params string[] tokens)
         {
             var uri = new Uri(tokens[2], UriKind.Absolute);
             var request = (HttpWebRequest)WebRequest.Create(uri);

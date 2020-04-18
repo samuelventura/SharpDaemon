@@ -11,8 +11,6 @@ namespace SharpDaemon.Server
         private readonly Dictionary<string, ClientRt> clients;
         private readonly X509Certificate2 certificate;
         private readonly ShellFactory factory;
-        private readonly IOutput output;
-        private readonly IOutput named;
         private readonly IPEndPoint endpoint;
         private readonly TcpListener server;
         private readonly Runner accepter;
@@ -20,7 +18,6 @@ namespace SharpDaemon.Server
 
         public class Args
         {
-            public IOutput Output { get; set; }
             public IPEndPoint EndPoint { get; set; }
             public ShellFactory ShellFactory { get; set; }
         }
@@ -32,25 +29,15 @@ namespace SharpDaemon.Server
             var certfile = ExecutableTools.Relative("DaemonManager.pfx");
             certificate = new X509Certificate2(certfile, "none");
             factory = args.ShellFactory;
-            output = args.Output;
             clients = new Dictionary<string, ClientRt>();
-            named = new NamedOutput(args.Output, "LISTENER");
             server = new TcpListener(args.EndPoint);
             server.MakeNotInheritable();
             using (var disposer = new Disposer())
             {
                 //push must match dispose order
-                register = new Runner(new Runner.Args
-                {
-                    ExceptionHandler = named.HandleException,
-                    ThreadName = "Register",
-                });
+                register = new Runner(new Runner.Args { ThreadName = "Register" });
                 disposer.Push(register);
-                accepter = new Runner(new Runner.Args
-                {
-                    ExceptionHandler = named.HandleException,
-                    ThreadName = "Accepter",
-                });
+                accepter = new Runner(new Runner.Args { ThreadName = "Accepter" });
                 disposer.Push(accepter);
 
                 disposer.Push(Dispose); //ensure cleanup order
@@ -91,11 +78,11 @@ namespace SharpDaemon.Server
                     using (var disposer = new Disposer())
                     {
                         disposer.Push(client);
-                        var rt = new ClientRt(client, certificate, output, factory);
+                        var rt = new ClientRt(client, certificate, factory);
                         disposer.Push(rt.Dispose); //ensure cleanup order
                         clients.Add(rt.EndPoint.ToString(), rt);
                         rt.Run(() => RemoveClient(rt));
-                        named.WriteLine("Client {0} connected", rt.EndPoint);
+                        Logger.Trace("Client {0} connected", rt.EndPoint);
                         disposer.Clear();
                     }
                 });
@@ -106,7 +93,7 @@ namespace SharpDaemon.Server
         {
             register.Run(() =>
             {
-                named.WriteLine("Client {0} disconnected", rt.EndPoint);
+                Logger.Trace("Client {0} disconnected", rt.EndPoint);
                 clients.Remove(rt.EndPoint.ToString());
                 rt.Dispose();
             });

@@ -36,15 +36,17 @@ namespace SharpDaemon.Test
             Directory.CreateDirectory(ShellRoot);
 
             var writers = new WriteLineCollection();
-            writers.Add(new ConsoleWriteLine());
+            writers.Add(new StdoutWriteLine());
             var logfile = PathTools.Combine(Root, "log.txt");
             log = new StreamWriter(logfile, true);
             writers.Add(new TextWriterWriteLine(log));
             Timed = new TimedWriter(writers);
             var pid = Process.GetCurrentProcess().Id;
-            Output.TRACE = new NamedOutput(Timed, string.Format("TRACE_{0}", pid));
+            Logger.TRACE = Timed;
             writers.WriteLine(string.Empty); //separating line
-            Output.Trace("Test case {0} starting...", TestContext.CurrentContext.Test.FullName);
+            writers.WriteLine("");
+            Logger.Trace("-----------------------------------------------------------------------------");
+            Logger.Trace("Test case {0} starting...", TestContext.CurrentContext.Test.FullName);
             //System.InvalidOperationException : This property has already been set and cannot be modified.
             //Thread.CurrentThread.Name = "NUnit";
         }
@@ -122,21 +124,19 @@ namespace SharpDaemon.Test
                 var stream = SocketTools.SslWithTimeout(client, 2000);
                 var read = new StreamReader(stream);
                 var write = new StreamWriter(stream);
-                var output = new Output(config.Timed);
-                var named = new NamedOutput(output, string.Format("SOCKET_{0} <", endpoint));
                 //var passfile = ExecutableTools.Relative("Password.txt");
                 //var password = File.ReadAllText(passfile).Trim();
                 //write.WriteLine(password);
                 var shell = new TestShell();
-                var reader = new Runner();
-                var writer = new Runner();
+                var reader = new Runner(new Runner.Args { ThreadName = "SOCKIN" });
+                var writer = new Runner(new Runner.Args { ThreadName = "SOCKOUT" });
                 reader.Run(() =>
                 {
                     var line = read.ReadLine();
                     while (line != null)
                     {
-                        named.WriteLine(line);
-                        shell.WriteLine(line);
+                        Logger.Trace("<c {0}", line);
+                        shell.WriteLine("<c {0}", line);
                         line = read.ReadLine();
                     }
                 });
@@ -145,6 +145,7 @@ namespace SharpDaemon.Test
                     var line = shell.ReadLine();
                     while (line != null)
                     {
+                        Logger.Trace("c> {0}", line);
                         write.WriteLine(line);
                         write.Flush();
                         line = shell.ReadLine();
@@ -171,20 +172,32 @@ namespace SharpDaemon.Test
                     Executable = ExecutableTools.Relative("SharpDaemon.Server.exe"),
                     Arguments = $"Id=test Daemon={config.Daemon} Port={config.ShellPort} IP={config.ShellIP} Root=\"{config.ShellRoot}\"",
                 });
-                Output.Trace("Shell process {0} {1} {2} {3}", process.Id, process.Name, process.Info.FileName, process.Info.Arguments);
-                var output = new Output(config.Timed);
-                var named = new NamedOutput(output, string.Format("STDIO_{0} <", process.Id));
+                Logger.Trace("Shell process {0} {1}", process.Id, process.Name, process.Info.FileName);
+                Logger.Trace("Shell path {0}", process.Info.FileName);
+                Logger.Trace("Shell args {0}", process.Info.Arguments);
                 var shell = new TestShell();
-                var reader = new Runner();
-                var writer = new Runner();
+                var reader = new Runner(new Runner.Args { ThreadName = "SDTOUT" });
+                var erroer = new Runner(new Runner.Args { ThreadName = "STDERR" });
+                var writer = new Runner(new Runner.Args { ThreadName = "STDIN" });
                 reader.Run(() =>
                 {
                     var line = process.ReadLine();
                     while (line != null)
                     {
-                        named.WriteLine(line);
-                        shell.WriteLine(line);
+                        Logger.Trace("<o {0}", line);
+                        shell.WriteLine("<o {0}", line);
                         line = process.ReadLine();
+                    }
+                    shell.WriteLine(Environ.NewLines);
+                });
+                erroer.Run(() =>
+                {
+                    var line = process.ReadError();
+                    while (line != null)
+                    {
+                        Logger.Trace("<e {0}", line);
+                        shell.WriteLine("<e {0}", line);
+                        line = process.ReadError();
                     }
                 });
                 writer.Run(() =>
@@ -192,10 +205,12 @@ namespace SharpDaemon.Test
                     var line = shell.ReadLine();
                     while (line != null)
                     {
+                        Logger.Trace("i> {0}", line);
                         process.WriteLine(line);
                         line = shell.ReadLine();
                     }
                 });
+                disposer.Push(erroer);
                 disposer.Push(reader);
                 disposer.Push(process);
                 disposer.Push(writer);
@@ -207,11 +222,10 @@ namespace SharpDaemon.Test
 
         public static void Web(Config config, Action action)
         {
-            var output = new NamedOutput(config.Timed, "WEB");
             Directory.CreateDirectory(config.WebRoot);
             var zippath = PathTools.Combine(config.WebRoot, "Daemon.StaticWebServer.zip");
             if (File.Exists(zippath)) File.Delete(zippath);
-            output.WriteLine("Zipping to {0}", zippath);
+            Logger.Trace("Zipping to {0}", zippath);
             ZipTools.ZipFromFiles(zippath, ExecutableTools.Directory()
                 , "Daemon.StaticWebServer.exe"
                 , "SharpDaemon.dll"
@@ -221,14 +235,14 @@ namespace SharpDaemon.Test
                 Executable = ExecutableTools.Relative("Daemon.StaticWebServer.exe"),
                 Arguments = $"EndPoint={config.WebEP} Root=\"{config.WebRoot}\"",
             });
-            Output.Trace("Web process {0} {1} {2} {3}", process.Id, process.Name, process.Info.FileName, process.Info.Arguments);
-            var reader = new Runner();
+            Logger.Trace("Web process {0} {1} {2} {3}", process.Id, process.Name, process.Info.FileName, process.Info.Arguments);
+            var reader = new Runner(new Runner.Args { ThreadName = "WEB" });
             reader.Run(() =>
             {
                 var line = process.ReadLine();
                 while (line != null)
                 {
-                    output.WriteLine("< {0}", line);
+                    Logger.Trace("<w {0}", line);
                     line = process.ReadLine();
                 }
             });

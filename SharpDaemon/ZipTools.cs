@@ -19,7 +19,7 @@ namespace SharpDaemon
                 foreach (var file in files)
                 {
                     var path = Path.Combine(root, file);
-                    //Output.Trace("Adding to ZIP {0}", path);
+                    //Logger.Trace("Adding to ZIP {0}", path);
                     zip.CreateEntryFromFile(path, file);
                 }
             }

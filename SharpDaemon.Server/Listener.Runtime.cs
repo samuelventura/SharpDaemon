@@ -13,16 +13,15 @@ namespace SharpDaemon.Server
         {
             private readonly X509Certificate2 certificate;
             private readonly IPEndPoint endpoint;
-            private readonly IOutput output;
             private readonly TcpClient client;
-            private readonly Runner runner;
+            private readonly Runner reader;
             private readonly Shell shell;
             private DateTime start;
             private DateTime last;
 
             public IPEndPoint EndPoint { get { return endpoint; } }
 
-            public ClientRt(TcpClient client, X509Certificate2 certificate, IWriteLine writer, ShellFactory factory)
+            public ClientRt(TcpClient client, X509Certificate2 certificate, ShellFactory factory)
             {
                 //client disposed in caller on throw
                 this.client = client;
@@ -33,17 +32,11 @@ namespace SharpDaemon.Server
                     last = DateTime.Now;
                     shell = factory.Create();
                     endpoint = client.Client.RemoteEndPoint as IPEndPoint;
-                    var name = string.Format("Client_{0}", endpoint);
-                    output = new NamedOutput(writer, name);
-                    runner = new Runner(new Runner.Args
-                    {
-                        ExceptionHandler = output.HandleException,
-                        ThreadName = name,
-                    });
-                    disposer.Push(runner);
+                    reader = new Runner(new Runner.Args { ThreadName = string.Format("Client_{0}", endpoint) });
+                    disposer.Push(reader);
 
                     disposer.Push(Dispose); //ensure cleanup order
-                    runner.Run(ReadLoop);
+                    reader.Run(ReadLoop);
                     disposer.Clear();
                 }
             }
@@ -52,10 +45,10 @@ namespace SharpDaemon.Server
             {
                 //no need to close stream (writer and reader)
                 ExceptionTools.Try(client.Close);
-                runner.Dispose();
+                reader.Dispose();
             }
 
-            public void Run(Action action) => runner.Run(action);
+            public void Run(Action action) => reader.Run(action);
 
             public string Info(string format)
             {
@@ -94,8 +87,7 @@ namespace SharpDaemon.Server
                         var password = File.ReadAllText(passfile).Trim();
                         if (password != reader.ReadLine()) return;
                     }
-                    var output = new Output(writer);
-                    ReadLoop(client, new ShellStream(output, reader));
+                    ReadLoop(client, new ShellStream(writer, reader));
                 }
             }
 
@@ -108,7 +100,6 @@ namespace SharpDaemon.Server
                     while (line != null)
                     {
                         last = DateTime.Now;
-                        output.WriteLine("< {0}", line);
                         Shell.ParseAndExecute(shell, stream, line);
                         line = stream.ReadLine();
                     }

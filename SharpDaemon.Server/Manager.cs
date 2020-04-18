@@ -8,8 +8,6 @@ namespace SharpDaemon.Server
         private readonly Dictionary<string, DaemonDto> installed;
         private readonly Dictionary<string, DaemonRT> running;
         private readonly Dictionary<string, DateTime> starting;
-        private readonly IOutput output;
-        private readonly IOutput named;
         private readonly string database;
         private readonly string root;
         private readonly Runner runner;
@@ -18,7 +16,6 @@ namespace SharpDaemon.Server
         public class Args
         {
             public string Root { get; set; }
-            public IOutput Output { get; set; }
             public string Database { get; set; }
             public int RestartDelay { get; set; }
         }
@@ -28,17 +25,14 @@ namespace SharpDaemon.Server
             database = args.Database;
             root = args.Root;
             delay = Math.Max(100, args.RestartDelay);
-            output = args.Output;
-            named = new NamedOutput(args.Output, "MANAGER");
             starting = new Dictionary<string, DateTime>();
             running = new Dictionary<string, DaemonRT>();
             installed = new Dictionary<string, DaemonDto>();
             runner = new Runner(new Runner.Args
             {
-                ExceptionHandler = named.HandleException,
                 ThreadName = "Manager",
                 IdleAction = IdleLoop,
-                IdleMsDelay = 10,
+                IdleMsDelay = 100,
             });
             runner.Run(ReloadDatabase);
         }
@@ -85,7 +79,7 @@ namespace SharpDaemon.Server
                 rt.Dispose();
                 running.Remove(rt.Id);
                 starting.Remove(rt.Id);
-                named.WriteLine("Daemon {0} removed", rt.Id);
+                Logger.Trace("Daemon {0} removed", rt.Id);
             }
 
             //launch installed but not running
@@ -115,20 +109,20 @@ namespace SharpDaemon.Server
 
         private void StartDaemon(DaemonDto dto)
         {
-            named.WriteLine("Daemon {0} starting {1}...", dto.Id, dto.Info("Path|Args"));
-            var rt = new DaemonRT(dto, root, delay, output);
+            Logger.Trace("Daemon {0} starting {1}...", dto.Id, dto.Info("Path|Args"));
+            var rt = new DaemonRT(dto, root, delay);
             running.Add(rt.Id, rt);
             starting.Remove(dto.Id);
-            named.WriteLine("Daemon {0} started {1}", rt.Id, rt.Info("Name|Pid"));
+            Logger.Trace("Daemon {0} started {1}", rt.Id, rt.Info("Name|Pid"));
         }
 
         private void ReStartDaemon(DaemonRT rt)
         {
             var dto = rt.Dto;
             rt.UpdateRestart();
-            named.WriteLine("Daemon {0} restarting {1}...", dto.Id, dto.Info("Path|Args"));
-            rt = new DaemonRT(rt.Dto, root, delay, output);
-            named.WriteLine("Daemon {0} restarted {1}", rt.Id, rt.Info("Name|Pid"));
+            Logger.Trace("Daemon {0} restarting {1}...", dto.Id, dto.Info("Path|Args"));
+            rt = new DaemonRT(rt.Dto, root, delay);
+            Logger.Trace("Daemon {0} restarted {1}", rt.Id, rt.Info("Name|Pid"));
             running.Remove(rt.Id);
             running.Add(rt.Id, rt);
         }
