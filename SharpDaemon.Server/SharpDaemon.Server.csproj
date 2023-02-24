@@ -15,7 +15,7 @@
     <ProjectReference Include="..\Daemon.StaticWebServer\Daemon.StaticWebServer.csproj" />  
     <Content Include="..\DaemonManager.pfx" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\Password.txt" CopyToOutputDirectory="PreserveNewest" />
-    <PackageReference Include="LiteDb" Version="5.0.5" />
+    <PackageReference Include="LiteDb" Version="5.0.13" />
   </ItemGroup>
 
 </Project>
